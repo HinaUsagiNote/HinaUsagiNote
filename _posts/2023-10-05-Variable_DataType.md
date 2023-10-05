@@ -1,3 +1,9 @@
+
+---
+layout: single
+title:  "변수"
+---
+
 ## 변수와 함수/연산자
 ### 정보(데이터): 변수(Variable)와 값(Value) 로 프로그램에 표현
 ### 처리한다: 연산자(Operator)와 함수(Function) 으로 프로그램에 표현
