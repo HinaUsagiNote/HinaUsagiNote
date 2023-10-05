@@ -16,7 +16,7 @@ published: true
 minimal_mistakes_skin    : "dark" # "air", "aqua", "contrast", "dark", "dirt", "neon", "mint", "plum", "sunrise"
 
 # Site Settings
-locale                   : "ko-KR"
+locale                   : "en-EN"
 title                    : "HinaUsagi"
 title_separator          : "-"
 subtitle                 : # site tagline that appears below site title in masthead
