@@ -1,0 +1,421 @@
+# 오류
+
+- 함수나 메소드가 처리 도중 다음 명령문을 실행할 수 없는 상황
+- 오류 중 처리가능한 것을 Exception(예외) 라고 한다. 그리고 그 예외를 처리하는 것을 Exception Handling 이라고 한다.
+
+![개요](images/ch08_01.png)
+
+
+## 오류의 종류
+- **파이썬 문법을 어겨서 발생하는 오류**
+    - 코드 상 100% 발생하는 오류
+    - 코드를 수정해 야한다.
+    - 보통 이런 오류는 컴파일 방식 언어의 경우 컴파일 때 에러를 내서 수정하도록 한다.
+- **실행 환경의 문제로 발생하는 오류**
+    - 코드상에서는 Exception의 발생여부를 확신할 수 없다.
+    - 만약 발생할 경우 어떻게 처리할지를 구현해야 한다.
+
+
+```python
+def set_age(self,age):
+    if age >= 0:
+        self.age = age
+    # 프로그램이 정상적인 실행을 못했을 때
+    else:
+        '예외 발생'
+# Exception 실행할때 오류 발생 여부 X
+## 하지만 추측은 할수있다. 
+```
+
+## Exception handling
+Exception이 발생되어 프로그램이 더이상 실행될 수 없는 상황을 처리(handling)해서 정상화 시키는 작업을 말한다.  
+try - except 구문을 이용해 처리한다.
+
+###  try, except 구문
+
+```python
+try:
+    Exception 발생가능한 코드 블록
+except [Exception클래스 이름 [as 변수]] :
+    처리 코드   
+```
+
+- **try block**
+    - Exception 발생 가능성 있는 코드와 그 코드와 연결된 코드들을 블록으로 묶는다.
+        - 연결된 코드란 Exception이 발생 안해야만 실행되는 코드를 말한다.
+- **except block**
+    - 발생한 Exception을 처리하는 코드 블록을 작성한다.
+        - try block의 코드를 실행하다 exception이 발생하면 except block이 실행된다. Exception이 발생하지 않으면 실행되지 않는다.
+    - try block에서 발생한 모든 Exception을 처리하는 경우 `except:` 로 선언한다.
+    - try block에서 발생한 특정 Exception만 따로 처리할 경우 `except Exception클래스 이름` 을 선언한다.
+        - 모든 Exception들은 클래스로 정의 되어 있다. 그 클래스 이름을 적어준다.
+        - **Exception 들 별로 각각 처리할 수 있으면 이 경우 except 구문(처리구문)을 연속해서 작성하면 된다.**
+    - try block에서 발생한 특정 Exception만 따로 처리하고 그 Exception이 왜 발생했는지 등의 정보를 사용할 경우 `except Exception 클래스 이름 as 변수명` 으로 선언하고 변수명을 이용해 정보를 조회한다.
+        
+
+
+```python
+print("프로그램 시작")    # 1
+
+num = int(input("정수:"))# 2.Exception 발생 가능성이 있는 코드.
+result = 10 // num       # 3
+print("결과:", result)   # 4
+   
+print("프로그램 종료") 
+```
+
+    프로그램 시작
+    정수:123
+    결과: 0
+    프로그램 종료
+    
+
+
+```python
+# Exception Error 하나만 처리
+print("프로그램 시작")    # 1
+
+try:
+    num = int(input("정수:"))#  2.Exception 발생 가능성이 있는 코드.
+    result = 10 // num       # 3. Exception 발생 가능성이 있는 코드.
+    print("결과:", result)   # 4
+except:
+    print("실행도중 문제가 발생했습니다. 일단 처리했습니다.")  # EH
+    
+    
+print("프로그램 종료 ==> 다음작업")    # 5
+
+
+# 정상흐름: 1, 2, 3, 4, 5
+# 2번에서 Exception 발생: 1, 2(x), 3(x), 4(x), EH, 5
+#      -> 1, EH, 5
+# 3번에서 Exception 발생: 1. 2, 3(x), 4(x), EH, 
+#      -> 1, 2, EH, 5
+```
+
+    프로그램 시작
+    정수:0
+    실행도중 문제가 발생했습니다. 일단 처리했습니다.
+    프로그램 종료 ==> 다음작업
+    
+
+
+```python
+# Exception 났을 때 클래스 이름을 정해줘야한다. => 클래스 : 파이썬 내장에 있는 에러 클래스 이름과 같이 넣어야함
+## 에러 블륵은 그냥 실행을 안하고 그냥 넘어감 ( 기록 남음 )
+### 에러가 난 블록은 출력을 그만하고 다음 코드블록으로 넘어감 ( 해결이 안됨 )
+print('프로그램 시작') # 1
+
+try:
+    num = int(input('점수:')) # 2 Excetion 발생 가능성이 있는 코드,
+    result = 10 // num # 3 Excetion 발생 가능성 있는 코드 
+    print('결과:',result) # 4
+    print('결과2:', result2) # NameError Exception 발생 
+except ValueError as ve: # ValueError 를 처리하는 Block
+    print('정수로 변환을 못했습니다.- ValueError 발생 -') # EH 1 ( Excetion Handling )
+    print('ve 변수출력:',ve)
+except ZeroDivisionError as ze: # ZeroDivisionError 를 처리하는 Block
+    print('0으로는 못나눕니다. - ZeroDivisionError 발생 -') # EH 2 ( Excetion Handling )
+    print('ze 변수출력:',ze)
+except Exception as e : # 두 Excetion을 제외한 나머지 Excetion 을 처리.
+    print('실행도중 문제가 발생했습니다. 일단 처리했습니다') # EH 3 ( Excetion Handling )
+    print('e 변수출력:',e)
+print('프로그램 종료 ==> 다음작업') # 5
+
+# Try -> ValueError 발생 : 1, EH1, 5
+# Try -> ZeroDivisionEroor 발생 : 1, 2, EH2, 5
+# Try -> ValueError, ZeroDivisionError 제외된 exception 발생( NameError )
+#                  1, 2, 3, 4, EH3, 5
+```
+
+    프로그램 시작
+    점수:123
+    결과: 0
+    실행도중 문제가 발생했습니다. 일단 처리했습니다
+    e 변수출력: name 'result2' is not defined
+    프로그램 종료 ==> 다음작업
+    
+
+### finally 구문
+
+- 예외 발생여부, 처리 여부와 관계없이 무조건 실행되는 코드블록
+    - try 구문에 **반드시 실행되야 하는 코드블록을 작성할때 사용한다.**
+    - 보통 프로그램이 외부자원과 연결해서 데이터를 주고 받는 작업을 할때 마지막 연결을 종료하는 작업을 finally 블록에 넣는다.
+- finally 는 except 보다 먼저 올 수 없다.
+    - 구문순서
+        1. try - except - finally
+        1. try - except
+        1. try - finally
+
+
+```python
+
+print('시작')
+try:
+    print(1)
+    a= 10 / 1
+    print(2)
+#     b = int('aa')
+except ValueError:
+    print(3)
+# 도중에 무조건 에러가 나도 Finally를 실행
+finally:
+    print('무조건 실행한다.')
+print('종료')
+
+```
+
+    시작
+    1
+    2
+    무조건 실행한다.
+    종료
+    
+
+
+```python
+try:
+    a = int(input())
+except:
+    print("예외발생")
+else:
+    print(a + 10)
+finally:
+    print("무조건실행할 코드")
+```
+
+    aaaa
+    예외발생
+    무조건실행할 코드
+    
+
+## Exception 발생 시키기
+
+### 사용자 정의 Exception 클래스 구현
+
+- 파이썬은 Exception 상황을 클래스로 정의해 사용한다.
+    - Exception이 발생하는 상황과 관련된 attribute들과 메소드들을 정의한 클래스
+    
+- 구현
+    - `Exception` 내장클래스를 **상속받는다.**
+    - 클래스 이름은 Exception 상황을 설명할 수 있는 이름을 준다.
+    
+
+
+```python
+# 월에 1 ~ 12 이외의 값을 대입할 때 발생시킬 exception 클래스 정의
+class InvalidMonthException(Exception):
+    def __init__(self, invalid_month):
+        # attribute로 입력된 "잘못된 월" 값을 저장.
+        self.invalid_month = invalid_month
+        
+    def __str__(self):
+        # Exception Error 메세지를 문자열로 반환.
+        return f"{self.invalid_month}는 사용할 수 없는 월입니다. 1 ~ 12 만 가능합니다."
+```
+
+### Exception 발생시키기
+- 함수나 메소드가 더이상 작업을 진행 할 수 없는 조건이 되면 Exception을 강제로 발생시킨다.
+- **Call Stack Mechanism**
+    - 발생한 Exception은 처리를 하지 않으면 caller에게 전달된다.
+        - 발생한 Exception에 대한 처리가 모든 caller에서 안되면 결국 파이썬 실행환경까지 전달되어 프로그램은 비정상적으로 종료 되게 된다.
+
+
+```python
+
+```
+
+### raise 구문
+- Exception을 강제로 발생시킨다.
+    - 업무 규칙을 어겼거나 다음 명령문을 실행할 수 없는 조건이 되면 진행을 멈추고 caller로 요청에게 작업을 처리 못했음을 알리며 돌아가도록 할때 exception을 발생시킨다.
+    - 구문
+    ```python
+        raise Exception객체
+    ```
+- **raise와 return**
+    - 함수나 메소드에서 return과 raise 구문이 실행되면 모두 caller로 돌아간다.
+    - return은 정상적으로 끝나서 돌아가는 의미이다. 그래서 처리결과가 있으면 그 값을 가지고 돌아간다.
+        - caller는 그 다음작업을 이어서 하면 된다.
+    - raise는 실행도중 문제(Exception)가 생겨 비정상적으로 끝나서 돌아가는 의미이다. 그래서 비정상적인 상황 정보를 가지는 Exception객체를 반환값으로 가지고 돌아간다.
+        - caller는 try - except구문으로 발생한 exception을 처리하여 프로그램을 정상화 하거나 자신도 caller에게 exception을 발생시키는 처리를 한다.
+        
+
+
+```python
+def use_month(month):
+    if month < 1 or month > 13:
+        # 처리할수 없는 월. 호출한 곳으로 돌아간다. ==> 비정상(예외발생)종료상태로 돌아간다.
+        raise InvalidMonthException(month) # 비정상 return
+    print('month:',month)
+    return None
+```
+
+
+```python
+use_month(50)
+```
+
+
+    ---------------------------------------------------------------------------
+
+    InvalidMonthException                     Traceback (most recent call last)
+
+    Cell In[28], line 1
+    ----> 1 use_month(50)
+    
+
+    Cell In[24], line 4, in use_month(month)
+          1 def use_month(month):
+          2     if month < 1 or month > 13:
+          3         # 처리할수 없는 월. 호출한 곳으로 돌아간다. ==> 비정상(예외발생)종료상태로 돌아간다.
+    ----> 4         raise InvalidMonthException(month) # 비정상 return
+          5     print('month:',month)
+          6     return None
+    
+
+    InvalidMonthException: 50는 사용할 수 없는 월입니다. 1 ~ 12 만 가능합니다.
+
+
+
+```python
+use_month(3)
+```
+
+    month: 3
+    
+
+
+```python
+use_month(5) #1. 월 사용
+print("use_day(30)")  #2. 일 사용
+print("use_year(2020)")#3. 년도를 사용
+```
+
+    month: 5
+    use_day(30)
+    use_year(2020)
+    
+
+
+```python
+print('시작')
+try:
+    print(use_month(123)) # 발생 가능성이 있는 코드 Exce
+    print('use_month(30)') # 2. 일
+    print('use_year(2023)') # 3. 년도
+except InvalidMonthException as e: # e에는 raise한 Exception 객체가 할당.
+    print('예외처리함', e) # InvalidMonthException 문자열로 만들어서 print 함
+    print(e.invalid_month) # 123
+print('종료')
+```
+
+    시작
+    예외처리함 123는 사용할 수 없는 월입니다. 1 ~ 12 만 가능합니다.
+    123
+    종료
+    
+
+
+```python
+# a -> b -> c -> d  -> c -> b -> a 종료 ====> callstack
+def a():
+    b()
+def b():
+    c()
+def c():
+    d()
+def d():
+    a = 10 / 0
+```
+
+
+```python
+try:
+    a()
+except:
+    print('처리-a')
+```
+
+    처리-a
+    
+
+
+```python
+# 재고량이 부족할 때 발생시킬 exception class
+class NotEnoughStockException(Exception):
+    
+    def __init__(self, stock_amount):
+        self.__stock_amount = stock_amount
+        
+    def __str__(self): # Exception 메세지를 반환
+        return f"재고량 보다 주문량이 더 많습니다. 현재 재고량: {self.__stock_amount}"
+    
+    @property
+    def stock_amount(self):  #getter
+        return self.__stock_amount
+    # setter는 정의 안함.==> 초기값을 변경 못하게 하겠다. ===> Immutable(불변) 타입
+```
+
+
+```python
+### 주문처리 toy 함수
+
+def order_item(order_amount:int):
+    """
+    주문 처리 함수
+    
+    Paramter
+        order_amount: int - 주문 개수
+    Return
+    Raise (Exception)
+        NotEnoughStockException - 주문량이 재고량보다 많으면 발생.
+        AException - 
+        BException -
+    """
+    print("1.재고량 조회")
+    stock_amount = 10 # 조회한 재고량.
+    print("2. 주문처리 시작")
+    
+    if stock_amount < order_amount: # 주문량이 더 많으면 예외발생
+        raise NotEnoughStockException(stock_amount)
+        
+    print("3. 주문처리")
+    stock_amount -= order_amount
+    print("4. 주문처리 종료")
+    print("남은 재고량:", stock_amount)
+```
+
+
+```python
+try:
+    order_item(8) 
+except NotEnoughStockException as e:
+    print('exeption 처리:', e)
+    order_item(e.stock_amount)
+```
+
+    1.재고량 조회
+    2. 주문처리 시작
+    3. 주문처리
+    4. 주문처리 종료
+    남은 재고량: 2
+    
+
+
+```python
+try:
+    order_item(50) 
+except NotEnoughStockException as e:
+    print('exeption 처리:', e)
+    order_item(e.stock_amount)
+```
+
+    1.재고량 조회
+    2. 주문처리 시작
+    exeption 처리: 재고량 보다 주문량이 더 많습니다. 현재 재고량: 10
+    1.재고량 조회
+    2. 주문처리 시작
+    3. 주문처리
+    4. 주문처리 종료
+    남은 재고량: 0
+    
