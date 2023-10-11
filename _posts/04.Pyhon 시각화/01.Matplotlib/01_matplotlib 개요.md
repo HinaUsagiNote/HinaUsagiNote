@@ -1,0 +1,445 @@
+# 데이터 시각화의 개념 및 필요성
+
+## 데이터 시각화
+- 데이터의 분석 결과를 쉽게 이해하고 판단할 수 있도록 데이터를 시각적으로 표현하여 전달하기 위한 과정을 말한다.
+
+## 필요성
+- 많은 양의 데이터를 한눈에 파악할 수 있다. 시각적 요소를 활용해 데이터를 요약한다.
+- 데이터 분석에 대한 전문적 지식이 없더라도 누구나 해당 데이터를 인지하고 활용할 수있게한다.
+    - 사람이 감각기관을 통해 획득하는 정보의 80%는 시각에 의한 것이다.
+    - 시각적인 입력은 다른 어떤 방법보다 빠르고 쉽게 사람이 이해할 수 있다.
+    - 시각화 형태, 요소, 위치, 색등을 기반으로 패턴이나 다양한 인사이트(의미있는 정보)를 도출 및 표현할 수 있다.
+- 단순한 데이터 요약, 통계분석 결과보다 정확한 데이터 분석결과를 도출할 수있다.
+    - 데이터의 패턴이나 추세, 데이터간 비교등 표(Table)로 쉽게 인식 할 수 없는 것들을 시각적으로 쉽게 확인할 수 있다.
+    
+# 대표적 파이썬 시각화 라이브러리
+- matplotlib
+- seaborn
+- pandas
+- plotly - js
+- folium - mpa
+
+#  Matplotlib
+- 데이터의 시각화를 위한 파이썬 패키지
+- 2차원 그래프를 위한 패키지이나 확장 API들을 이용해 3D 그래프등 다양한 형식의 시각화를 지원
+- 파이썬 기반의 다른 시각화 패키지의 기본이 된다.
+    - Seaborn, Pandas 등이 Matplotlib를 기반으로 사용한다.
+- https://matplotlib.org
+
+## 장점
+- 동작하는 OS를 가리지 않는다.
+- MATLAB과 유사한 사용자 인터페이스를 가진다.
+- 그래프에 대한 상세한 설정을 할 수 있다.
+- 다양한 출력 형식으로 저장할 수 있다.
+
+## matplotlib 그래프 구성요소
+![image.png](image.png)
+
+- **figure**
+    - 전체 그래프가 위치할 기본 틀
+    - 하나의 figure에 여러개의 그래프를 그릴 수 있다.
+    - https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.figure.html
+- **axes(subplot)**
+    - figure내에 한개의 그래프를 그리기 위한 공간
+        - figure에 한개 이상의 axes(subplot)로 구성해서 각 axes에 그래프를 그린다.
+    - https://matplotlib.org/stable/api/axes_api.html
+- **axis** 
+    - 축 (x축, y축)은 값들을 위치시키는 선을 말한다.
+    - axis label (x, y) : 축의 레이블(설명)
+- **ticks** : 축의 값을 알려주는 눈금
+    - Major tick
+    - Minor tick
+- **title** : 플롯 제목   
+- **legend (범례)**
+    - 하나의 axes내에 여러 그래프를 그린 경우 그것에 대한 설명
+
+
+```python
+%matplotlib inline
+# %matplotlib qt
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# facecolor: figure의 배경색
+fig = plt.figure(figsize=(15,7), facecolor='gray') 
+# axex(subplot)
+axes1 = fig.add_subplot(1,2,1)
+axes2 = fig.add_subplot(1,2,2)
+# label : legend(범례)
+axes1.plot([1,2,3,4,5], [10,20,30,40,50], label='line1')
+axes1.plot([1,2,3,4,5], [50,40,30,20,10], label='line2')
+axes2.scatter(np.random.randint(100, size=50), np.random.randint(100, 200, size=50), color='r')
+
+fig.suptitle('Example of Plot', size=25, color='blue') #size: 폰트크기, color: 글자색
+axes1.set_title("PLOT 1", size=20)
+axes2.set_title("Plot 2", size=20)
+
+axes1.set_xlabel("X축", size=15)
+axes1.set_ylabel("Y축", size=15)
+axes2.set_xlabel("가격1", size=15)
+axes2.set_ylabel('가격2', size=15)
+
+axes1.legend()
+axes1.grid(True)
+plt.show()
+```
+
+
+    
+![png](output_5_0.png)
+    
+
+
+# 그래프 그리기
+1. matplotlib.pyplot 모듈을 import
+    - 2차원 그래프(axis가 두개인 그래프)를 그리기위한 함수를 제공하는 모듈
+    - 별칭(alias) 로 plt를 관례적으로 사용한다.
+    - `import matplotlib.pyplot as plt`
+
+2. 그래프를 그린다.
+ 
+3. 그래프에 필요한 설정을 한다.
+
+4. 화면에 그린다.
+    - 지연 랜더링(Deferred rendering) 메카니즘
+    - 마지막에 `pyplot.show()` 호출 시 그래프를 그린다.
+        - 주피터 노트북 맨 마지막 코드에 `;`를 붙이는 것으로 대체할 수 있다.
+
+# 그래프를 그리는 두가지 방식
+- pyplot 모듈의 함수들을 사용한다.
+- Figure와 Axes 객체의 메소드들을 사용한다.
+
+## pyplot 모듈을 이용해 그리기
+1. pyplot 모듈이 그래프 그리는 함수와 Axes(Subplot) 설정 관련 함수를 제공
+
+
+```python
+# 그래프에 사용할 데이터
+```
+
+
+```python
+## x 축 (axis)
+x = [1,2,3,4,5]
+## y 축 (axis)
+y = [10,20,30,40,50]
+```
+
+
+```python
+# import -> alias: plt
+import matplotlib.pyplot as plt
+```
+
+
+```python
+# 그래프 그리기. plt모듈 함수이용
+```
+
+
+```python
+# line plot (선그래프)
+plt.plot(x, y)
+
+# 그래프에 대한 설정
+## 제목
+plt.title("Lineplot 예제")
+
+## x, y축의 라벨
+plt.xlabel('X값')
+plt.ylabel('Y값')
+
+## 가이드 선
+plt.grid(True)
+
+## ticks : 눈금, labels : 각 눈금의 LABEL지정 ( ticks와 labels의 개수가 같아야함)
+plt.xticks(ticks=range(0,10), labels=list('ABCDEFGHIJ'))
+plt.yticks(ticks=range(10, 51, 5))
+
+# 그래프를 출력
+plt.show()
+```
+
+
+    
+![png](output_13_0.png)
+    
+
+
+2. 하나의 figure에 여러 그래프 그리기
+    - plt.subplot(row,columns,num)
+
+
+```python
+import matplotlib.pyplot as plt
+
+# figure의 크기설정 (가로:10, 세로:5) 단위: inch
+plt.figure(figsize=(12,5))
+
+# axes == subplot (그래프를 그리는 영억) figure에 포함
+## figure를 1행 2열로 나눔 -> 그중 1번(첫번째) subplot에 그래프 그림
+# 위치 지정
+plt.subplot(1, 2, 1)
+
+## 그래프 그리기+설정
+plt.plot(x, y)
+plt.title('1번 subplot')
+plt.grid(True)
+
+# 위치 지정 그래프 그리기+설정
+plt.subplot(1, 2, 2)
+# 그래프 그리기+설정
+plt.scatter(x,y)
+plt.title('2번 subplot')
+
+# axes 간의 간격을 알아서 조정
+plt.tight_layout()
+
+# 그래프 출력
+plt.show()
+```
+
+
+    
+![png](output_15_0.png)
+    
+
+
+
+```python
+import matplotlib.pyplot as plt
+
+# 하나의 axes에 여러 그래프를 그리기
+plt.plot(x,y, label='비례')
+plt.plot(x,y[::-1], label='반비례')
+
+# legend : 범주 
+## loc : 위치, [upper, center, row] [left, right]
+plt.legend(loc='lower right')
+
+plt.show()
+```
+
+
+    
+![png](output_16_0.png)
+    
+
+
+## Figure 와 Axes 객체를 이용해 그리기
+
+- AxesSubplot 객체(Axes를 표현하는 객체)의 메소드들을 이용해 그래프를 그린다.
+- axes 생성 방법
+    - plt.gca(): AxesSubplot
+        - 하나의 figure에 하나의 Axes 만 사용할 경우 사용.
+    - 하나의 figure에 여러개의 Axes들을 사용할 경우
+        - figure.add_subplot() 메소드 이용
+            - figure를 먼저 생성후 axes 들을 추가
+        - pyplot.subplots() 함수를 이용
+            - figure와 axes배열을 동시에 생성
+
+### Figure에 하나의 axes 그리기
+- plt.gca() 사용
+
+
+```python
+# axes 객체 생성
+axes = plt.gca()
+print(type(axes))
+
+axes.plot(x, y)
+
+# 설정
+## set_title
+axes.set_title('제목')
+
+## set_ticks
+axes.set_xticks(ticks=[1,1.5,2,2.5,3,3.5,4,4.5,5])
+
+## set_xylabel
+axes.set_xlabel('X축 라벨')
+axes.set_ylabel('Y축 라벨')
+
+axes.grid(True)
+
+plt.show()
+```
+
+    <class 'matplotlib.axes._axes.Axes'>
+    
+
+
+    
+![png](output_19_1.png)
+    
+
+
+### 하나의 Figure에 여러개의 axes 그리기
+1. <b style='font-size:1.3em'>figure.add_subplot() 메소드 이용</b>
+    - figure객체에 axes를 추가하는 형태
+    - nrows(총행수), ncols(총열수), index(axes위치) 지정
+
+
+```python
+# figure 객체 생성
+fig = plt.figure()
+print(type(fig))
+
+# 2 X 2의 첫번째 위치. 추가한 Axes객체를 반환
+axes1 = fig.add_subplot(2, 2, 1)
+axes1.plot(x,y)
+axes1.set_title('1번 axes')
+
+axes2 = fig.add_subplot(2, 2, 3)
+axes2.plot(y, x)
+axes2.set_title('2번 axes')
+
+axes3 = fig.add_subplot(1, 2, 2)
+# bar : 막대 그래프
+axes3.bar(['A','B'], [10, 20])
+axes3.set_title('3번 axes')
+
+plt.tight_layout()
+plt.show()
+```
+
+    <class 'matplotlib.figure.Figure'>
+    
+
+
+    
+![png](output_21_1.png)
+    
+
+
+2. <b style='font-size:1.3em'>pyplot.subplots()</b>
+    - nrows, ncols 로 axes개수와 위치 지정
+    - 반환: figure와 axes(subplot)들을 담은 **ndarray**
+
+
+```python
+# 미리 나눠놓고 함
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+print(type(fig))
+print(type(axes), axes.shape)
+
+axes[0,0].plot(x,y, color='red')
+axes[0,1].bar(['A','B'], [10, 20])
+axes[1,0].plot(x,y[::-1], c='g')
+axes[1,1].plot(x,x, c='k')
+
+plt.show()
+
+```
+
+    <class 'matplotlib.figure.Figure'>
+    <class 'numpy.ndarray'> (2, 2)
+    
+
+
+    
+![png](output_23_1.png)
+    
+
+
+# 색상과 스타일
+
+## 색 지정
+- color 또는 c 매개변수를  이용해 지정
+- **색상이름으로 지정.** 
+    - 색이름 또는 약자로 지정 가능
+    - 'red', 'r'
+    
+| 문자열 | 약자 |
+|-|-|
+| `blue` | `b` |
+| `green` | `g` |
+| `red` | `r` |
+| `cyan` | `c` |
+| `magenta` | `m` |
+| `yellow` | `y` |
+| `black` | `k` |
+| `white` | `w` |
+
+
+- **HTML Color Hex code**
+    - #으로 시작하며 RGB의 성분을 16진수로 표현
+    - #RRGGBB 또는 #RRGGBBAA
+    - #FF0000, #00FF00FA
+- **0 ~ 1 사이 실수로 흰식과 검정색 사이의 회색조를 표시**
+    - 0: 검정, 1: 흰색
+- **color 값 검색**
+    - https://matplotlib.org/examples/color/named_colors.html
+    - https://htmlcolorcodes.com/
+        - picker, chart(코드), name(색이름) 제공사이트
+    - google 에서 `color picker`로 검색
+    
+
+## Style
+- Style: 그래프의 여러 시각효과들을 미리 설정해 놓은 것
+- matplotlib는 다양한 스타일들을 미리 정의해 놓고 있다.
+    - [스타일목록](https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html)
+    - `plt.style.use()` 함수 이용해 지정
+    - `plt.style.available`
+        - 사용할 수 있는 스타일 이름 조회
+
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+```
+
+
+```python
+# 1 ~ 100 범위를 100등분했을때 분위수
+x = np.linspace(1,10, num=100)
+x
+```
+
+
+
+
+    array([ 1.        ,  1.09090909,  1.18181818,  1.27272727,  1.36363636,
+            1.45454545,  1.54545455,  1.63636364,  1.72727273,  1.81818182,
+            1.90909091,  2.        ,  2.09090909,  2.18181818,  2.27272727,
+            2.36363636,  2.45454545,  2.54545455,  2.63636364,  2.72727273,
+            2.81818182,  2.90909091,  3.        ,  3.09090909,  3.18181818,
+            3.27272727,  3.36363636,  3.45454545,  3.54545455,  3.63636364,
+            3.72727273,  3.81818182,  3.90909091,  4.        ,  4.09090909,
+            4.18181818,  4.27272727,  4.36363636,  4.45454545,  4.54545455,
+            4.63636364,  4.72727273,  4.81818182,  4.90909091,  5.        ,
+            5.09090909,  5.18181818,  5.27272727,  5.36363636,  5.45454545,
+            5.54545455,  5.63636364,  5.72727273,  5.81818182,  5.90909091,
+            6.        ,  6.09090909,  6.18181818,  6.27272727,  6.36363636,
+            6.45454545,  6.54545455,  6.63636364,  6.72727273,  6.81818182,
+            6.90909091,  7.        ,  7.09090909,  7.18181818,  7.27272727,
+            7.36363636,  7.45454545,  7.54545455,  7.63636364,  7.72727273,
+            7.81818182,  7.90909091,  8.        ,  8.09090909,  8.18181818,
+            8.27272727,  8.36363636,  8.45454545,  8.54545455,  8.63636364,
+            8.72727273,  8.81818182,  8.90909091,  9.        ,  9.09090909,
+            9.18181818,  9.27272727,  9.36363636,  9.45454545,  9.54545455,
+            9.63636364,  9.72727273,  9.81818182,  9.90909091, 10.        ])
+
+
+
+
+```python
+plt.style.use('default')
+# plt.style.use('Solarize_Light2')
+
+plt.plot(x, x + 3 )
+plt.plot(x, x + 2 )
+plt.plot(x, x )
+plt.plot(x, x + 1 )
+
+plt.show()
+```
+
+
+    
+![png](output_28_0.png)
+    
+
