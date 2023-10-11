@@ -1,0 +1,2116 @@
+# 인덱싱과 슬라이싱을 이용한 배열의 원소 조회 및 변경
+
+## 배열 인덱싱(Indexing)
+- <b style='font-size:1.3em'>index</b>
+    - 배열내의 원소의 식별번호
+    - 0부터 시작
+- <b style='font-size:1.3em'>indexing </b>
+    – index를 이용해 원소 조회
+    - [] 표기법 사용
+- <b style='font-size:1.3em'>구문 </b>
+    - ndarray[index]
+    - 양수는 지정한 index의 값을 조회한다. 
+    - 음수는 뒤부터 조회한다. 
+        - 마지막 index가 -1
+    - 2차원배열의 경우 
+        - arr[0축 index, 1축 index]
+        - 파이썬 리스트와 차이점 
+    - N차원 배열의 경우
+        - arr[0축 index, 1축 index, ..., n축 index]
+- <b style='font-size:1.3em'>팬시(fancy) 인덱싱</b>
+    - **여러개의 원소를 한번에 조회**할 경우 리스트에 담아 전달한다.
+    - 다차원 배열의 경우 각 축별로 list로 지정
+    - `arr[[1,2,3,4,5]]`
+        - 1차원 배열(vector): 1,2,3,4,5 번 index의 원소들 한번에 조회
+    - `arr[[0,3], [1,4]]`
+        - [0,3] - 1번축 index list, [1,4] - 2번축 index list
+        - 2차원 배열(matrix): [0,1], [3,4] 의 원소들 조회
+
+Numpy 안에서 인덱싱, 슬라이싱은 내부index만 사용한다.
+
+
+```python
+import numpy as np
+```
+
+### 1차원
+
+
+```python
+a = np.arange(30)
+a
+```
+
+
+
+
+    array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29])
+
+
+
+#### 조회
+
+
+```python
+print(a[0])
+print(a[-1])
+print(a[[1, 5, -1, -3]])
+```
+
+    0
+    29
+    [ 1  5 29 27]
+    
+
+#### 변경
+
+
+```python
+a[0] = 100
+a[0]
+```
+
+
+
+
+    100
+
+
+
+### 다차원
+
+
+```python
+a2 = np.array([
+    [1,2,3,4,5],
+    [10,20,30,40,50],
+    [100,200,300,400,500]
+])
+a2.shape
+```
+
+
+
+
+    (3, 5)
+
+
+
+#### 조회
+
+
+```python
+# 0 axis의 index 지정 -> 1 axis 전부
+a2[0]
+```
+
+
+
+
+    array([1, 2, 3, 4, 5])
+
+
+
+
+```python
+# 0 axis
+a2[[0,2]]
+```
+
+
+
+
+    array([[  1,   2,   3,   4,   5],
+           [100, 200, 300, 400, 500]])
+
+
+
+
+```python
+# 0 axis: index 0, 1axis: index 1
+a2[0,1]
+```
+
+
+
+
+    2
+
+
+
+
+```python
+a2[0,-1]
+```
+
+
+
+
+    5
+
+
+
+
+```python
+# a2[ , -1] 앞의 축의 idnex는 생략못함.
+## 앞의 축의 모든값 출력 => a2[:, -1]
+a2[:, -1]
+```
+
+
+
+
+    array([  5,  50, 500])
+
+
+
+
+```python
+a2[[0, 2], 2]
+```
+
+
+
+
+    array([  3, 300])
+
+
+
+
+```python
+a2[[0, 2, 1], [0, -1, 2]]
+```
+
+
+
+
+    array([  1, 500,  30])
+
+
+
+
+```python
+a2
+```
+
+
+
+
+    array([[  1,   2,   3,   4,   5],
+           [ 10,  20,  30,  40,  50],
+           [100, 200, 300, 400, 500]])
+
+
+
+
+```python
+
+```
+
+## 슬라이싱
+- 배열의 원소들을 범위로 조회한다.
+- ndarry[start : stop : step ]
+    - start : 시작 인덱스. 기본값 0
+    - stop : 끝 index. stop은 포함하지 않는다. 기본값 마지막 index
+    - step : 증감 간격. 기본값 1
+
+### 다차원 배열 슬라이싱
+- 각 축에 slicing 문법 적용
+- 2차원의 경우
+    - arr [0축 slicing, 1축 slicing]
+        - `arr[:3, :]`
+    - `,` 로 축을 구분한 다중 슬라이싱 사용
+- 다차원의 경우
+    - arr[0축 slicing, 1축 slicing, ..., n축 slicing]
+- slicing과 indexing 문법은 같이 쓸 수 있다.
+
+
+```python
+a2
+```
+
+
+
+
+    array([[  1,   2,   3,   4,   5],
+           [ 10,  20,  30,  40,  50],
+           [100, 200, 300, 400, 500]])
+
+
+
+
+```python
+# axis 0: 0 ~ 2-1 axis 1: 전부
+a2[:2]
+```
+
+
+
+
+    array([[ 1,  2,  3,  4,  5],
+           [10, 20, 30, 40, 50]])
+
+
+
+
+```python
+# axis 0: 0, axis 1: 1 ~ 3-1
+a2[0, 1:3]
+```
+
+
+
+
+    array([2, 3])
+
+
+
+
+```python
+a2[0, 3:1:-1]
+```
+
+
+
+
+    array([4, 3])
+
+
+
+
+```python
+a2[1: , 1:4]
+```
+
+
+
+
+    array([[ 20,  30,  40],
+           [200, 300, 400]])
+
+
+
+
+```python
+a2[[1,2], 1:4]
+```
+
+
+
+
+    array([[ 20,  30,  40],
+           [200, 300, 400]])
+
+
+
+
+```python
+b = a[:10]
+b
+```
+
+
+
+
+    array([100,   1,   2,   3,   4,   5,   6,   7,   8,   9])
+
+
+
+
+```python
+b[-1] = 90000
+b
+```
+
+
+
+
+    array([  100,     1,     2,     3,     4,     5,     6,     7,     8,
+           90000])
+
+
+
+
+```python
+a
+```
+
+
+
+
+    array([  100,     1,     2,     3,     4,     5,     6,     7,     8,
+           90000,    10,    11,    12,    13,    14,    15,    16,    17,
+              18,    19,    20,    21,    22,    23,    24,    25,    26,
+              27,    28,    29])
+
+
+
+
+```python
+
+```
+
+### 슬라이싱은 원본에 대한 View 
+- slicing한 결과는 새로운 배열을 생성하는 것이 아니라 기존 배열을 참조한다.
+- slicing한 배열의 원소를 변경하면 원본 배열의 것도 바뀐다.
+- 배열.copy()
+    - 배열을 복사한 새로운 배열 생성
+    - 복사후 처리하면 원본이 바뀌지 않는다.
+
+
+```python
+# .copy() => deep copy
+b2 = a[:10].copy()
+b2
+```
+
+
+
+
+    array([  100,     1,     2,     3,     4,     5,     6,     7,     8,
+           90000])
+
+
+
+
+```python
+b2[-1] = 9
+b2
+```
+
+
+
+
+    array([100,   1,   2,   3,   4,   5,   6,   7,   8,   9])
+
+
+
+
+```python
+a
+```
+
+
+
+
+    array([  100,     1,     2,     3,     4,     5,     6,     7,     8,
+           90000,    10,    11,    12,    13,    14,    15,    16,    17,
+              18,    19,    20,    21,    22,    23,    24,    25,    26,
+              27,    28,    29])
+
+
+
+
+```python
+
+```
+
+## boolean indexing
+- Index 연산자에 같은 형태(shape)의 Boolean 배열을 넣으면 True인 index의 값만 조회 (False가 있는 index는 조회하지 않는다.)
+- ndarray내의 원소 중에서 원하는 조건의 값들만 조회할 때 사용
+    - ndarray는 **element-wise 연산**을 지원한다. 이를 이용해 boolean indexing으로 원하는 조건의 값들을 조회할 수 있다.
+- boolean indexing을 masking이라고도 한다.
+
+## 넘파이 비교연산자
+- 파이썬의 and, or, not은 사용할 수 없다.
+- `&`: and연산
+- `|`: or 연산
+- `~`: not 연산
+- 피연산자는 `( )`로 묶어야 한다.
+
+### Element-wise(원소별) 연산
+
+
+```python
+a = np.array([10, 5, -10, 2, 7])
+a
+```
+
+
+
+
+    array([ 10,   5, -10,   2,   7])
+
+
+
+
+```python
+print(a+10)
+print(a>0)
+```
+
+    [20 15  0 12 17]
+    [ True  True False  True  True]
+    
+
+#### 비교연산자
+- 피연산자 () 묶어야한다
+- & : and, | : or, ~ : not
+
+
+```python
+a
+```
+
+
+
+
+    array([ 10,   5, -10,   2,   7])
+
+
+
+
+```python
+(a > 0) & (a <5)
+```
+
+
+
+
+    array([False, False, False,  True, False])
+
+
+
+#### Boolean indexing
+
+
+```python
+a[(a > 0) & (a < 5)]
+```
+
+#### 양수만 조회
+
+
+```python
+arr = np.random.randint(-100, 100, (3, 10))
+arr.shape
+```
+
+
+
+
+    (3, 10)
+
+
+
+
+```python
+arr >= 0
+```
+
+
+
+
+    array([[ True,  True,  True,  True,  True, False,  True, False, False,
+             True],
+           [False,  True, False, False,  True,  True, False,  True,  True,
+             True],
+           [ True, False,  True, False, False,  True,  True,  True,  True,
+             True]])
+
+
+
+
+```python
+# Boolean indexing의 결과: 1차원 배열
+arr[arr >= 0]
+```
+
+
+
+
+    array([76,  9, 26, 83, 96, 86, 17, 83, 32, 19, 92, 44, 74, 39, 98, 43, 78,
+           74, 50, 65])
+
+
+
+#### 음수만 조회
+
+
+```python
+arr[(arr >= -10) & (arr <= 10)]
+```
+
+
+
+
+    array([ 9, -9])
+
+
+
+### np.where()
+- **True의 index 조회**
+    - np.where(boolean 배열) - True인 index를 반환
+        - 반환타입: Tuple . True인 index들을 담은 ndarray를 축별로 Tuple에 묶어서 반환한다.
+    - boolean연산과 같이사용하여 배열내에 **특정 조건을 만족하는 값들을 index(위치)를 조회할 때** 사용한다. 
+- **True와 False를 다른 값으로 변환**
+    - np.where(boolean 배열, True를 대체할 값, False를 대체할 값)
+        - 배열내의 True를 True를 대체할 값으로 False를 False를 대체할 값 으로 변환한다.
+
+
+
+```python
+arr.shape
+```
+
+
+
+
+    (3, 10)
+
+
+
+
+```python
+# Boolean 배열 -> True의 index를 반환
+## Tuple => (축별 index 배열, )
+np.where(arr > 0)
+```
+
+
+
+
+    (array([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2],
+           dtype=int64),
+     array([0, 1, 2, 3, 4, 6, 9, 1, 4, 5, 7, 8, 9, 0, 2, 5, 6, 7, 8, 9],
+           dtype=int64))
+
+
+
+
+```python
+arr[0, 0], arr[2, 9], arr[1, 8] 
+```
+
+
+
+
+    (76, 65, 44)
+
+
+
+
+```python
+a = np.where(arr > 0)
+for a1, a2 in zip(a[0], a[1]):
+    print(arr[a1, a2])
+```
+
+    76
+    9
+    26
+    83
+    96
+    86
+    17
+    83
+    32
+    19
+    92
+    44
+    74
+    39
+    98
+    43
+    78
+    74
+    50
+    65
+    
+
+#### True: 양수, False: 양수
+
+
+```python
+np. where(arr > 0, '양수', '음수')
+```
+
+
+
+
+    array([['양수', '양수', '양수', '양수', '양수', '음수', '양수', '음수', '음수', '양수'],
+           ['음수', '양수', '음수', '음수', '양수', '양수', '음수', '양수', '양수', '양수'],
+           ['양수', '음수', '양수', '음수', '음수', '양수', '양수', '양수', '양수', '양수']],
+          dtype='<U2')
+
+
+
+
+```python
+
+```
+
+### 기타
+- np.any(boolean 배열)
+    - 배열에 True가 하나라도 있으면 True 반환
+    - 배열내에 특정조건을 만족하는 값이 하나 이상 있는지 확인할 때 사용
+- np.all(boolean 배열)
+    - 배열의 모든 원소가 True이면 True 반환
+    - 배열내의 모든 원소가 특정 조건을 만족하는지 확인 할 때 사용
+
+#### True가 하나이상이면 True, 모두 False면 False
+
+
+```python
+np.any([True, False, False])
+np.any([False, False,])
+```
+
+
+
+
+    False
+
+
+
+#### 모두 True일 때만 True
+
+
+```python
+np.all([True, False, False])
+np.all([True, True])
+```
+
+
+
+
+    True
+
+
+
+#### arr이 모두 양수인지?
+
+
+```python
+np.all(arr > 0)
+```
+
+
+
+
+    False
+
+
+
+#### arr의 원소중 양수가 있는지?
+
+
+```python
+np.any(arr > 0)
+```
+
+
+
+
+    True
+
+
+
+### 특정 조건이 True인 값들을 조회 -> boolean indexing
+### 특정 조건이 True인 값들의 index -> np.where()
+### 특정 조건의 값이 하나라도 있는지 -> np.any()
+### 모든 값들이 특정 조건을 만족하는지(True) -> np.all()
+
+
+```python
+
+```
+
+# 배열의 형태(shape) 변경
+
+- 배열의 원소의 개수를 유지하는 상태에서 shape을 변경할 수있다.
+    - 예) (16, ) -> (4,4) -> (2,2,4) -> (2,2,2,2), -> (4,4,1) -> (1, 16)
+
+## reshape()을 이용한 차원 변경
+- `numpy.reshape(a, newshape)` 또는 `ndarray.reshape(newshape)`
+    - a: 형태를 변경할 배열
+    - newshape : 변경할 형태 설정. 
+        - 원소의 개수를 유지하는 shape으로만 변환 가능하다.
+        - 각 axis(축)의 size를 지정할 때 **하나의 축의 size를 -1**로 줄 수있다. 그러면 알아서 축 size를 설정해 준다. (전체 size / 지정한 axis들 size의 곱)
+
+    - 둘다 원본을 바꾸지 않고 reshape한 새로운 배열을 만들어 반환한다.
+
+
+```python
+import numpy as np
+```
+
+
+```python
+x = np.arange(20)
+print(x.shape)
+x
+```
+
+    (20,)
+    
+
+
+
+
+    array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19])
+
+
+
+
+```python
+r1 = np.reshape(x, # shape변활할 대상
+                (4, 5) # 변경할 shape => size(원소개수)가 바뀌면 안됨
+                )
+print(r1.shape)
+r1
+```
+
+    (4, 5)
+    
+
+
+
+
+    array([[ 0,  1,  2,  3,  4],
+           [ 5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14],
+           [15, 16, 17, 18, 19]])
+
+
+
+
+```python
+# reshape() : 메소드사용 -> 가변인자를 이용해서 변활할 shape 지정
+r2 = x.reshape(4, 5)
+print(r2.shape)
+r2
+```
+
+    (4, 5)
+    
+
+
+
+
+    array([[ 0,  1,  2,  3,  4],
+           [ 5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14],
+           [15, 16, 17, 18, 19]])
+
+
+
+
+```python
+x.shape
+```
+
+
+
+
+    (20,)
+
+
+
+
+```python
+x.reshape(4, -1)
+```
+
+
+
+
+    array([[ 0,  1,  2,  3,  4],
+           [ 5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14],
+           [15, 16, 17, 18, 19]])
+
+
+
+
+```python
+x.reshape(2, 2, -1)
+```
+
+
+
+
+    array([[[ 0,  1,  2,  3,  4],
+            [ 5,  6,  7,  8,  9]],
+    
+           [[10, 11, 12, 13, 14],
+            [15, 16, 17, 18, 19]]])
+
+
+
+
+```python
+# size가 1인 axis: dummy axis
+## 1차원: (20, ) => 2차원: (1, 20)
+x.reshape(1,-1)
+```
+
+
+
+
+    array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+            16, 17, 18, 19]])
+
+
+
+
+```python
+# (20, 1)
+x.reshape(-1, 1)
+```
+
+
+
+
+    array([[ 0],
+           [ 1],
+           [ 2],
+           [ 3],
+           [ 4],
+           [ 5],
+           [ 6],
+           [ 7],
+           [ 8],
+           [ 9],
+           [10],
+           [11],
+           [12],
+           [13],
+           [14],
+           [15],
+           [16],
+           [17],
+           [18],
+           [19]])
+
+
+
+
+```python
+# size(개수) : 바뀌면 안된다 --> Error
+x.reshape(2, 8)
+```
+
+
+    ---------------------------------------------------------------------------
+
+    ValueError                                Traceback (most recent call last)
+
+    Cell In[26], line 1
+    ----> 1 x.reshape(2, 8)
+    
+
+    ValueError: cannot reshape array of size 20 into shape (2,8)
+
+
+
+```python
+r3 = x.reshape(1, 2, 2, 5, 1, 1) 
+r3.shape
+```
+
+
+
+
+    (1, 2, 2, 5, 1, 1)
+
+
+
+
+```python
+# r3 -> 1차원
+r3.reshape(-1)
+```
+
+
+
+
+    array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19])
+
+
+
+
+```python
+# flatten() : 다차원 -> 1차원
+```
+
+
+```python
+r3.reshape(2, 10)
+```
+
+
+
+
+    array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]])
+
+
+
+
+```python
+r3.flatten()
+```
+
+
+
+
+    array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
+           17, 18, 19])
+
+
+
+## 차원 늘리기(확장)
+
+- Dummy axis(축)을 늘린다.
+   > - Dummy axis: size가 1인 axis 를 말한다.
+
+- **reshape() 을 이용해 늘릴 수 있다.**
+
+- **indexer와 np.newaxis 변수를 이용해 늘린다.**
+    - ndarray\[..., np.newaxis\] 또는 ndarray\[np.newaxis, ...\]
+        - 맨앞 또는 맨 마지막에 dummy axis(축)을 늘릴때 사용한다.
+        - 축을 늘리려는 위치에 np.newaxis를 지정하고 `...` 으로 원본 배열의 shape을 유지함을 알려준다.
+
+
+```python
+# Dummy axis 추가
+r1 = x.reshape(1, -1)
+r1.shape
+```
+
+
+
+
+    (1, 20)
+
+
+
+
+```python
+r2 = r1.reshape(1, 20, 1)
+r2.shape
+```
+
+
+
+
+    (1, 20, 1)
+
+
+
+
+```python
+a = np.arange(20).reshape(4, 5)
+a.shape
+```
+
+
+
+
+    (4, 5)
+
+
+
+
+```python
+# (4, 5) => (1, 4, 5)
+a.reshape(1, 4, -1)
+```
+
+
+
+
+    array([[[ 0,  1,  2,  3,  4],
+            [ 5,  6,  7,  8,  9],
+            [10, 11, 12, 13, 14],
+            [15, 16, 17, 18, 19]]])
+
+
+
+### np.newaxis : Dummy axis 추가
+
+
+```python
+a.shape
+b = a[np.newaxis, ...]
+b.shape
+```
+
+
+
+
+    (1, 4, 5)
+
+
+
+
+```python
+a.shape
+c = a[..., np.newaxis]
+c.shape
+```
+
+
+
+
+    (4, 5, 1)
+
+
+
+
+```python
+a.shape
+x = a[..., np.newaxis, np.newaxis, np.newaxis]
+x.shape
+```
+
+
+
+
+    (4, 5, 1, 1, 1)
+
+
+
+### np.expand_dims (대상배열, 추가할축) : Dummy axis 추가 함수
+
+
+```python
+a.shape
+d = np.expand_dims(a, axis=0)
+d.shape
+```
+
+
+
+
+    (1, 4, 5)
+
+
+
+
+```python
+
+```
+
+## 차원 줄이기(축소)
+
+### numpy.squeeze(배열, axis=None), 배열객체.squeeze(axis=None)
+- 배열에서 지정한 축(axis)을 제거하여 차원(rank)를 줄인다.
+- 제거하려는 축의 size는 1이어야 한다.
+- 축을 지정하지 않으면 size가 1인 모든 축을 제거한다.
+    - (3,1,1,2) => (3,2)
+
+
+```python
+b.shape
+```
+
+
+
+
+    (1, 4, 5)
+
+
+
+### Squeeze() : Dummy axis 제거
+
+
+```python
+r = np.squeeze(b)
+r.shape
+```
+
+
+
+
+    (4, 5)
+
+
+
+
+```python
+c.shape
+```
+
+
+
+
+    (1, 4, 5, 1, 1)
+
+
+
+
+```python
+r2 = np.squeeze(c)
+r2.shape
+```
+
+
+
+
+    (4, 5)
+
+
+
+
+```python
+r3 = np.squeeze(c, axis=0)
+r3.shape
+```
+
+
+
+
+    (4, 5, 1, 1)
+
+
+
+
+```python
+
+```
+
+### 배열객체.flatten()
+- 다차원 배열을 1차원으로 만든다.
+
+
+```python
+r3.shape
+```
+
+
+
+
+    (4, 5, 1, 1)
+
+
+
+
+```python
+r4 = r3.flatten()
+r4.shape
+```
+
+
+
+
+    (20,)
+
+
+
+
+```python
+
+```
+
+# 배열 연산
+
+## 벡터화 - 벡터 연산
+- 배열과 scalar 간의 연산은 원소단위로 계산한다.
+- 배열간의 연산은 같은 index의 원소끼리 계산 한다. 
+    - **Element-wise(원소별) 연산** 이라고도 한다.
+    - **배열간의 연산시 배열의 형태(shape)가 같아야 한다.**
+    - 배열의 형태가 다른 경우 Broadcast 조건을 만족하면 연산이 가능하다.
+
+### 배열과 스칼라간 연산
+
+$$
+\begin{align}
+10 -
+\begin{bmatrix}
+1 \\
+2 \\
+3 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+10 - 1 \\
+10 - 2 \\
+10 - 3 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+9 \\
+8 \\
+7 \\
+\end{bmatrix}
+\end{align}
+$$
+
+$$
+\begin{align}
+10 \times
+\begin{bmatrix}
+1 & 2 \\
+3 & 4
+\end{bmatrix}
+=
+\begin{bmatrix}
+10\times1 & 10\times2 \\
+10\times3 & 10\times4 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+10 & 20 \\
+30 & 40
+\end{bmatrix}
+\end{align}
+$$
+
+### 배열 간의 연산
+$$
+\begin{align}
+\begin{bmatrix}
+1 \\
+2 \\
+3 \\
+\end{bmatrix}
++
+\begin{bmatrix}
+10 \\
+20 \\
+30 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 + 10 \\
+2 + 20 \\
+3 + 30 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+11 \\
+22 \\
+33 \\
+\end{bmatrix}
+\end{align}
+$$
+
+
+$$
+\begin{align}
+\begin{bmatrix}
+1 & 2 \\
+3 & 4
+\end{bmatrix}
++
+\begin{bmatrix}
+10 & 20 \\
+30 & 40 \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1+10 & 2+20 \\
+3+30 & 4+40
+\end{bmatrix}
+=
+\begin{bmatrix}
+11 & 22 \\
+33 & 44
+\end{bmatrix}
+\end{align}
+$$
+
+
+
+```python
+import numpy as np
+```
+
+
+```python
+x = np.arange(10).reshape(2, 5)
+y = np.arange(10, 20).reshape(2, 5)
+z = np.arange(8).reshape(2, 4)
+```
+
+
+```python
+x
+```
+
+
+
+
+    array([[0, 1, 2, 3, 4],
+           [5, 6, 7, 8, 9]])
+
+
+
+
+```python
+y
+```
+
+
+
+
+    array([[10, 11, 12, 13, 14],
+           [15, 16, 17, 18, 19]])
+
+
+
+
+```python
+# 같은 index값 끼리 계산
+x - y
+```
+
+
+
+
+    array([[-10, -10, -10, -10, -10],
+           [-10, -10, -10, -10, -10]])
+
+
+
+
+```python
+x > y
+```
+
+
+
+
+    array([[False, False, False, False, False],
+           [False, False, False, False, False]])
+
+
+
+
+```python
+# shape이 다르면 계산안됨
+x - z
+```
+
+
+    ---------------------------------------------------------------------------
+
+    ValueError                                Traceback (most recent call last)
+
+    Cell In[78], line 2
+          1 # shape이 다르면 계산안됨
+    ----> 2 x - z
+    
+
+    ValueError: operands could not be broadcast together with shapes (2,5) (2,4) 
+
+
+
+```python
+
+```
+
+## 내적 (Dot product) 연산
+
+- `@` 연산자 또는 `numpy.dot(벡터/행렬, 벡터/행렬)`  함수 사용
+- 같은 index의 원소끼리 곱한뒤 결과를 모두 더한다.
+- 벡터간의 내적의 결과는 스칼라가 된다.
+- $ x \cdot y $ 또는 $x^T y$로 표현
+- 조건
+    - 두 벡터의 차원(원소의개수)가 같아야 한다.
+    - 앞의 벡터는 행벡터 뒤의 벡터는 열벡터 이어야 한다.
+        - numpy 에서는 vector 끼리 연산시 앞의 벡터는 행벡터로 뒤의 벡터는 열벡터로 인식해 처리한다.
+
+$$
+\begin{align}
+x =
+\begin{bmatrix}
+1 \\ 2 \\ 3 \\
+\end{bmatrix}
+,\;\;\;
+y = 
+\begin{bmatrix}
+4 \\ 5 \\ 6 \\
+\end{bmatrix} 
+\end{align}
+$$
+
+$$
+\begin{align}
+x^T y = 
+\begin{bmatrix}
+1 & 2 & 3
+\end{bmatrix}
+\begin{bmatrix}
+4 \\ 5 \\ 6 \\
+\end{bmatrix} 
+= 1 \times 4 + 2 \times 5 + 3 \times 6 = 32
+\end{align}
+$$
+
+
+```python
+x = np.array([1, 2, 3])
+y = np.array([4, 5, 6])
+```
+
+
+```python
+r1 = x @ y
+r2 = np.dot(x, y)
+print(r1, r2)
+```
+
+    32 32
+    
+
+### 행렬 곱
+- 같은 index의 앞 행렬의 행과 뒤 행렬의 열간에 내적을 한다.
+- 행렬과 행렬을 내적하면 그 결과는 행렬이 된다.
+- 앞 행렬의 열수와 뒤 행렬의 행수가 같아야 한다.
+- 내적의 결과의 형태(shape)는 앞행렬의 행수와 뒤 행렬의 열의 형태를 가진다.
+    - (3 x 2)와 (2 x 5) = (3 x 5)
+    - (1 x 5)와 (5 x 1) = (1 x 1)    
+
+   
+$$
+\begin{align}
+A = \begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \end{bmatrix}
+\end{align}
+$$
+
+$$
+\begin{align}
+B = \begin{bmatrix} 1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix}
+\end{align}
+$$
+
+$$
+\begin{align}
+A\cdot B = \begin{bmatrix} 1\times 1 + 2\times 3 + 3 \times 5 & 1\times 2 + 2\times 4 + 3 \times 6  \\ 4\times 1 + 5\times 3 + 6 \times 5  & 4\times 2 + 5\times 4 + 6 \times 6  \end{bmatrix} = 
+\begin{bmatrix} 22 & 28 \\ 49 & 64 \end{bmatrix}
+\end{align}
+$$    
+
+#### 행렬곱 : ( n , m ) ( m , o ) => n*o
+
+
+```python
+A = np.arange(1, 7).reshape(2, 3)
+B = np.arange(1, 7).reshape(3, 2)
+```
+
+
+```python
+# 앞행렬 0축과 뒤행렬 1축의 size가 같아야한다.
+A.shape, B.shape
+```
+
+
+```python
+A @ B
+```
+
+
+
+
+    array([[22, 28],
+           [49, 64]])
+
+
+
+
+```python
+np.dot(A,B)
+```
+
+
+
+
+    array([[22, 28],
+           [49, 64]])
+
+
+
+
+```python
+# 앞행렬 축과 뒤행렬 축의 size가 다르다 -> Error
+C = np.arange(1, 7).reshape(2, 3)
+A.shape, C.shape
+A @ C
+```
+
+
+    ---------------------------------------------------------------------------
+
+    ValueError                                Traceback (most recent call last)
+
+    Cell In[88], line 3
+          1 C = np.arange(1, 7).reshape(2, 3)
+          2 A.shape, C.shape
+    ----> 3 A @ C
+    
+
+    ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 2 is different from 3)
+
+
+### 내적의 예
+#### 가중합 
+가격: 사과 2000, 귤 1000, 수박 10000    
+개수: 사과 10, 귤 20, 수박 2    
+총가격?    
+2000*10 + 1000 * 20 + 10000 * 2
+
+
+```python
+price = np.array([2000, 1000, 10000])
+cnt = np.array([10, 20, 2])
+```
+
+
+```python
+np.sum(price * cnt)
+```
+
+
+
+
+    60000
+
+
+
+
+```python
+price @ cnt
+```
+
+
+
+
+    60000
+
+
+
+
+```python
+cnts = np.array([
+    [10, 20, 2], # 첫번째 사람이 산 개수
+    [5, 2, 10],  # 두번째 사람
+    [7, 30, 10], # 셋번째 사람
+    [20, 10, 0]  # 네번째 사람
+])
+cnts.shape, price.shape
+```
+
+
+
+
+    ((4, 3), (3,))
+
+
+
+
+```python
+price_2 = price[..., np.newaxis]
+price_2.shape
+```
+
+
+
+
+    (3, 1)
+
+
+
+
+```python
+cnts, price_2
+```
+
+
+
+
+    (array([[10, 20,  2],
+            [ 5,  2, 10],
+            [ 7, 30, 10],
+            [20, 10,  0]]),
+     array([[ 2000],
+            [ 1000],
+            [10000]]))
+
+
+
+
+```python
+r = cnts @ price_2
+r
+```
+
+
+
+
+    array([[ 60000],
+           [112000],
+           [144000],
+           [ 50000]])
+
+
+
+
+```python
+np.dot(cnts, price_2)
+```
+
+
+
+
+    array([[ 60000],
+           [112000],
+           [144000],
+           [ 50000]])
+
+
+
+## 기술통계함수
+
+- 통계 결과를 계산해 주는 함수들
+- 구문
+    1. `np.전용함수(배열)`
+        - np.sum(x)
+    2. 일부는 `배열.전용함수()` 구문 지원
+        - x.sum()
+    - 공통 매개변수
+        - axis=None: 다차원 배열일 때 통계값을 계산할 axis(축)을 지정한다. None(기본값)은 flatten후 계산한다.
+        
+- 배열의 원소 중 누락된 값(NaN - Not a Number) 있을 경우 연산의 결과는 NaN으로 나온다.        
+- **안전모드 함수**
+    - 배열내 누락된 값(NaN)을 무시하고 계산
+        
+- https://docs.scipy.org/doc/numpy-1.15.1/reference/routines.statistics.html
+
+![image.png](b938bbb3-4460-4b70-b046-f27353384c8d.png)
+
+
+```python
+np.random.seed(0)
+a = np.random.randint(100, size=10).astype('float32')
+a
+```
+
+
+
+
+    array([44., 47., 64., 67., 67.,  9., 83., 21., 36., 87.], dtype=float32)
+
+
+
+
+```python
+np.sum(a), a.sum()
+```
+
+
+
+
+    (525.0, 525.0)
+
+
+
+
+```python
+np.sum([1,2,3])
+```
+
+
+
+
+    6
+
+
+
+
+```python
+a.min(),a.max()
+```
+
+
+
+
+    (9.0, 87.0)
+
+
+
+
+```python
+# min, max값의 index
+a.argmin(), a.argmax()
+```
+
+
+
+
+    (5, 9)
+
+
+
+
+```python
+b = np.array([80, 90, 100])
+b.mean()
+```
+
+
+
+
+    90.0
+
+
+
+
+```python
+c = np.array([3, 3, 1])
+np.average(a=b, weights=c)
+```
+
+
+
+
+    87.14285714285714
+
+
+
+
+```python
+(b @ c)/c.sum()
+```
+
+
+
+
+    87.14285714285714
+
+
+
+
+```python
+# a 에 결측치 추가
+a[1] = np.nan
+a
+```
+
+
+
+
+    array([44., nan, 64., 67., 67.,  9., 83., 21., 36., 87.], dtype=float32)
+
+
+
+
+```python
+a.mean(), a.sum(), a.std(), a.min(), a.max(), a.argmax()
+```
+
+
+
+
+    (nan, nan, nan, nan, nan, 1, 1)
+
+
+
+#### np.nan() : 결측치 빼고 계산
+
+
+```python
+np.nanmean(a), np.nansum(a), np.nanstd(a), np.nanmin(a), np.nanmax(a), np.nanargmax(a)
+```
+
+
+
+
+    (53.11111, 478.0, 25.601408, 9.0, 87.0, 9)
+
+
+
+
+```python
+arr = np.arange(20).reshape(4, 5)
+arr.shape
+```
+
+
+
+
+    (4, 5)
+
+
+
+
+```python
+arr
+```
+
+
+
+
+    array([[ 0,  1,  2,  3,  4],
+           [ 5,  6,  7,  8,  9],
+           [10, 11, 12, 13, 14],
+           [15, 16, 17, 18, 19]])
+
+
+
+
+```python
+# 2차원 -> 0차원(스칼라)
+arr.sum()
+```
+
+
+
+
+    190
+
+
+
+### 지정한 axis 기준을 집계
+
+
+```python
+## 2차원 -> 1차원
+arr.sum(axis=0)
+```
+
+
+
+
+    array([30, 34, 38, 42, 46])
+
+
+
+
+```python
+arr.sum(axis=1)
+```
+
+
+
+
+    array([10, 35, 60, 85])
+
+
+
+### Keepdims=True : 차원유지
+
+
+```python
+r = arr.sum(axis=0, keepdims=True)
+print(r.shape)
+r
+```
+
+    (1, 5)
+    
+
+
+
+
+    array([[30, 34, 38, 42, 46]])
+
+
+
+
+```python
+r = arr.sum(axis=1, keepdims=True)
+print(r.shape)
+r
+```
+
+    (4, 1)
+    
+
+
+
+
+    array([[10],
+           [35],
+           [60],
+           [85]])
+
+
+
+
+```python
+arr2 = np.arange(3*2*3).reshape(3, 2, 3)
+arr2.shape
+```
+
+
+
+
+    (3, 2, 3)
+
+
+
+
+```python
+arr2
+```
+
+
+
+
+    array([[[ 0,  1,  2],
+            [ 3,  4,  5]],
+    
+           [[ 6,  7,  8],
+            [ 9, 10, 11]],
+    
+           [[12, 13, 14],
+            [15, 16, 17]]])
+
+
+
+
+```python
+arr2.sum(axis=0)
+```
+
+
+
+
+    array([[18, 21, 24],
+           [27, 30, 33]])
+
+
+
+
+```python
+arr2.sum(axis=1)
+```
+
+
+
+
+    array([[ 3,  5,  7],
+           [15, 17, 19],
+           [27, 29, 31]])
+
+
+
+
+```python
+arr2.sum(axis=2)
+```
+
+
+
+
+    array([[ 3, 12],
+           [21, 30],
+           [39, 48]])
+
+
+
+
+```python
+
+```
+
+# 브로드캐스팅
+- 사전적의미 : 퍼트린다. 전파한다. 
+- 형태(shape)가 다른 배열 연산시 배열의 형태를 맞춰 연산이 가능하도록 한다.
+    - 모든 형태를 다 맞추는 것은 아니고 조건이 맞아야 한다.
+- 조건
+    1. 두 배열의 축의 개수가 다르면 작은 축의개수를 가진 배열의 형태(shape)의 앞쪽을 1로 채운다.
+        - (2, 3)  + (3, ) => (2, 3) + (1, 3)
+    2. 두 배열의 차원 수가 같지만 각 차원의 크기가 다른 경우 어느 한 쪽에 1이 있으면 그 1이 다른 배열의 크기와 일치하도록 늘어난다.
+         - 1 이외의 나머지 축의 크기는 같아야 한다.
+         - 늘리면서 원소는 복사한다.
+         - (2, 3) + (1, 3) => (2, 3)+(2, 3)
+
+![image.png](f4ae146a-0b9b-4860-9c03-7b29e19b4052.png)
+
+
+```python
+x = np.array([0, 1, 2])
+y = np.ones(shape=(3,3))
+print(x.shape, y.shape)
+```
+
+    (3,) (3, 3)
+    
+
+
+```python
+x + y
+```
+
+
+
+
+    array([[1., 2., 3.],
+           [1., 2., 3.],
+           [1., 2., 3.]])
+
+
+
+
+```python
+a = np.arange(1, 4).reshape(3, 1)
+b = np.arange(1, 4)
+print(a.shape, b.shape)
+```
+
+    (3, 1) (3,)
+    
+
+
+```python
+a, b
+```
+
+
+
+
+    (array([[1],
+            [2],
+            [3]]),
+     array([1, 2, 3]))
+
+
+
+
+```python
+a + b
+```
+
+
+
+
+    array([[2, 3, 4],
+           [3, 4, 5],
+           [4, 5, 6]])
+
+
+
+
+```python
+# shape 다름 ==> Error
+m = np.arange(4).reshape(2, 2)
+n = np.arange(6).reshape(2, 3)
+m + n
+```
+
+
+    ---------------------------------------------------------------------------
+
+    ValueError                                Traceback (most recent call last)
+
+    Cell In[151], line 4
+          2 m = np.arange(4).reshape(2, 2)
+          3 n = np.arange(6).reshape(2, 3)
+    ----> 4 m + n
+    
+
+    ValueError: operands could not be broadcast together with shapes (2,2) (2,3) 
+
+
+
+```python
+
+```
