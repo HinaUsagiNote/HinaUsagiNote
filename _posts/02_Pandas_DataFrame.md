@@ -1,3 +1,9 @@
+---
+layout: single
+title: '첫 포스팅입니다.'
+typora-root-url: ../
+---
+
 <b style='font-size:2em'>DataFrame(데이터프레임)</b>
 
 # DataFrame 개요
