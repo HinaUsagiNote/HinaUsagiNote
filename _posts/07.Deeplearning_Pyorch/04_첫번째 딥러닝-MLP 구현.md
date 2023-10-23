@@ -1,0 +1,915 @@
+# Pytorch 개발 Process
+
+1. **데이터 준비**
+    - Dataset 준비
+    - Dataloader 생성
+
+2. **입력과 출력을 연결하는 Layer(층)으로 이뤄진 네트워크(모델)을 정의**
+    - **Sequential 방식**: 순서대로 쌓아올린 네트워크로 이뤄진 모델을 생성하는 방식
+        - layer를 순서대로 쌓은 모델을 구현할때 간단히 모델을 정의할 수 있다.
+        - layer block을 정의하는데 사용할 수 있다.
+    - **Subclass 방식**: 네트워크를 정의하는 클래스를 구현. 추론
+        - 다양한 구조의 모델을 정의할 수 있다.
+        - inializer에서 필요한 layer들을 생성한다.
+        - forward(self, X) 메소드에 forward propagation 계산을 구현한다.
+    
+
+3. **train**
+    - train 함수, test 함수 정의
+
+4. test set 최종평가
+
+# MNIST 이미지 분류 
+- **[MNIST](https://ko.wikipedia.org/wiki/MNIST_%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B2%A0%EC%9D%B4%EC%8A%A4) (Modified National Institute of Standards and Technology) database**
+- 흑백 손글씨 숫자 0-9까지 10개의 범주로 구분해놓은 데이터셋
+- 하나의 이미지는 28 * 28 pixel 의 크기
+- 6만개의 Train 이미지와 1만개의 Test 이미지로 구성됨.
+
+## import
+
+
+```python
+# torch: 공통 구현체
+# torchvision: 영상처리 구현체
+import torch
+import torch.nn as nn # 딥러닝 모델을 구성하는 함수들의 모듈.
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms # 영상처리.
+# torchaudio: 소리관련, # torchtext: 자연어, 텍스트관련.
+
+# matplotlib.pyplot: 그래프
+import matplotlib.pyplot as plt
+# numpy: 다차원배열, 랜덤값
+import numpy as np
+# os: 디렉토리 생성
+import os
+
+print('Pytorch version:', torch.__version__)
+```
+
+    Pytorch version: 2.1.0+cpu
+    
+
+### device 설정
+
+
+```python
+# 처리를 CPU를 이용할지 GPU를 이용할지 설정
+device = 'cuba' if torch.cuda.is_available() else 'cpu'
+print('device', device)
+```
+
+    device cpu
+    
+
+### 변수 설정
+
+
+```python
+# 뒤에서 여러번 사용할 값들을 저장할 변수 + 
+# 모델에 설정할 값(모델자체, 학습할때 필요한값 등등)으로 성능에 영향을 주는 값들을 저장할 변수 ==> 하이퍼파라미터(Hyper Parameter)
+BATCH_SIZE = 256 # 모델의 파라미터를 업데이트할때 사용할 데이터의 개수. 한번에 몇개 데이터를 입혁할지
+N_EPOCH = 20     # 전체 train dataset을 한번 학습한 것을 1 epoch
+LR = 0.001       # 학습률. 파라미터 update 할때 gradient값에 곱해줄 값. (gradient를 새로운 파리미터 계산할때 얼마나 반영할지 비율)
+
+##
+# step: 파라미터를 1번 update 하는 단위. 1 step당 학습데이터수: batch_size
+# epoch: 전체 학습데이터셋을 한번 학습한 단위. 1 epoch당 step 횟수: np.ceil(총 데이터수/batch_size)
+
+# 디렉토리 생성
+DATASET_SAVE_PATH = 'datasets' # 데이터셋을 저장할 디렉토리 경로
+MODEL_SAVE_PATH = 'models'     # 학습-평가가 끝난 모델을 저장할 디렉토리 경로.
+os.makedirs(DATASET_SAVE_PATH, exist_ok=True)
+os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
+```
+
+
+```python
+np.ceil(60000/256)
+```
+
+
+
+
+    235.0
+
+
+
+## MNIST dataset Loading
+
+### Dataset
+
+
+```python
+### MNIST DataSet을 다운로드 + DataSet 객체를 생성.
+# train dataset - 6만장
+## torchvision.datasets
+train_set = datasets.MNIST(root=DATASET_SAVE_PATH, # 데이터셋을 저장할 디렉토리 경로
+                           train=True, # train=True: trainset(훈련용)
+                           download=True, # root에 저장된 데이터파일들이 없을때 다운로드 받을지 여부
+                           transform=transforms.ToTensor() # 데이터 전처리. 
+                          )
+# ToTensor(): ndarray, PIL.Image객체를 torch.Tensor로 변환. Pixcel값 정규화(normalize): 0 ~ 1 실수로 변환
+## 전처리: inputdata => torch.Tensor 타입만 받는다. -> torch.Tensor로 변환, Pixcel: 256 -> 0 ~ 1 사이 실수로 정규화 
+
+test_set = datasets.MNIST(root=DATASET_SAVE_PATH,
+                          train=False, # train=False: testset(테스트용)
+                          download=True, 
+                          transform=transforms.ToTensor()
+                         )
+
+```
+
+
+```python
+print(type(train_set)) # Dataset 타입
+print(train_set)
+print(test_set)
+```
+
+    <class 'torchvision.datasets.mnist.MNIST'>
+    Dataset MNIST
+        Number of datapoints: 60000
+        Root location: datasets
+        Split: Train
+        StandardTransform
+    Transform: ToTensor()
+    Dataset MNIST
+        Number of datapoints: 10000
+        Root location: datasets
+        Split: Test
+        StandardTransform
+    Transform: ToTensor()
+    
+
+
+```python
+# 데이터 포인트 개수
+print(len(train_set), len(test_set))
+```
+
+    60000 10000
+    
+
+### DataLoader
+
+
+```python
+# Dataset을 모델에 어떻게 제공할지를 설정. => 학습/평가시 설정된대로 데이터를 Loading
+## 훈련용 DataLader
+train_loader = DataLoader(train_set, # Dataset
+                          batch_size=BATCH_SIZE, # batch_size를 설정
+                          shuffle=True, # 한 Epoch이 끝나면 다음 Epoch 전에 데이터를 섞을지 여부
+                          drop_last=True # 마지막 batch의 데이터수가 batch_size보다 적을 경우 버릴지(학습에 사용한함) 여부
+                         )
+
+## 평가용 DataLoader
+test_loader = DataLoader(test_set, batch_size=BATCH_SIZE)
+```
+
+
+```python
+print('1 에폭당 step 수')
+print('trainset:', len(train_loader))
+print('testset:', len(test_loader))
+```
+
+    1 에폭당 step 수
+    trainset: 234
+    testset: 40
+    
+
+
+```python
+np.floor(60000/256), np.ceil(10000/256)
+```
+
+
+
+
+    (234.0, 40.0)
+
+
+
+ - Dataset: input/output data를 묶어서 관리.   
+ - DatalLoader: Dataset의 데이터들을 모델에 어떻게 제공할지를 관리.
+
+## 네트워크(모델) 정의
+- Network : 전체 모델 구조
+
+
+```python
+# class 로 정의: nn.Module 을 상속해서 정의
+class MnistModel(nn.Module):
+
+    def __init__(self):
+        """
+        모델 객체 생성시 모델을 구현(정의)할때 필요한 것들을 초기화.
+        필요한 것: Layer들(파라미터를 갖고있는 함수). 등등
+        """
+        super().__init__()
+        
+        # 특징의 개수를 필요한 특성들만 뽑아낸면서 압축해나간다. art(감, 경험): outputsize 지정
+        ### 784(pixcel수) -> 128 개로 축소
+        self.lr1 = nn.Linear(28*28, 128) # input feature크기, output size(사용자정의)
+        ### 128 feature -> 64 축소
+        self.lr2 = nn.Linear(128, 64)
+        ### 64 feature -> 출력결과 10 (각 범주의 확률) : 범주값: 1 ~ 9
+        self.lr3 = nn.Linear(64, 10)
+        ### Activation(활성) 함수 -> 비선형함수: ReLU
+        self.relu = nn.ReLU() # f(x) = max(x, 0)
+    
+    def forward(self, x):
+        """
+        input data를 입력받아서 output 데이터를 만들때 까지의 계산 흐름을 정의 ==> forward propagetion
+        parameter
+            x : 입력데이터
+        return 
+            torch.Tensor: 출력데이터(모델의 예측결과.)
+        """
+        # init에서 생성한 함수들을 이용해서 계산
+        ## x -> 1차원으로 변환 -> lr1 -> relu -> lr2 -> relu -> lr3 -> output
+        # input (batch_size, channel, height, width) => (batch_size, 전체 pixcle)
+        x = torch.flatten(x, start_dim=1) # (b, c, h, w) => (b, c*h*w)
+        
+        x = self.lr1(x)  # 선형공식(필수)
+        x = self.relu(x) # 비선형함수(relu)
+        
+        x = self.lr2(x)
+        x = self.relu(x)
+
+        output = self.lr3(x)
+        # output = nn.Softmax(dim=-1)(output) # Softamx 객채성성, (호출할때 넘어간다.)
+        return output
+```
+
+
+```python
+i = torch.arange(28*28).reshape(1, 1, 28, 28)
+i.shape # ([1: 데이터개수, 1: channel, 28: height, 28: width])
+# -> 1차원 => 데이터개수는 유지 [1, 784(28*28)]
+## 다차원 텐서 => 1차원 => flatten([start_dim=axis]) # 지정한 axis부터 합친다.
+torch.flatten(i).shape
+torch.flatten(i, start_dim=1).shape # axis 0은 유지, 나머지 axis는 합친다.
+```
+
+
+
+
+    torch.Size([1, 784])
+
+
+
+
+```python
+### 정의한 모델 클래스로 부터 모델 객체를 생성
+model = MnistModel()
+print(model)
+```
+
+    MnistModel(
+      (lr1): Linear(in_features=784, out_features=128, bias=True)
+      (lr2): Linear(in_features=128, out_features=64, bias=True)
+      (lr3): Linear(in_features=64, out_features=10, bias=True)
+      (relu): ReLU()
+    )
+    
+
+
+```python
+### 모델의 연산 흐름 및 정보를 확인 => torchinfo 패키지를 사용
+# import torchinfo 
+!pip install torchinfo
+```
+
+    Requirement already satisfied: torchinfo in c:\users\world\anaconda3\envs\torch\lib\site-packages (1.8.0)
+    
+
+
+```python
+from torchinfo import summary
+summary(model, (256, 1, 28, 28)) # summary(모델객체, input sahpe: tuple)
+
+# Total params: 파라미터 갯수
+# Trainable params: 학습할 파라미터 갯수
+# Non-trainable params: 학습안할 파라미터 개수
+```
+
+
+
+
+    ==========================================================================================
+    Layer (type:depth-idx)                   Output Shape              Param #
+    ==========================================================================================
+    MnistModel                               [256, 10]                 --
+    ├─Linear: 1-1                            [256, 128]                100,480
+    ├─ReLU: 1-2                              [256, 128]                --
+    ├─Linear: 1-3                            [256, 64]                 8,256
+    ├─ReLU: 1-4                              [256, 64]                 --
+    ├─Linear: 1-5                            [256, 10]                 650
+    ==========================================================================================
+    Total params: 109,386
+    Trainable params: 109,386
+    Non-trainable params: 0
+    Total mult-adds (M): 28.00
+    ==========================================================================================
+    Input size (MB): 0.80
+    Forward/backward pass size (MB): 0.41
+    Params size (MB): 0.44
+    Estimated Total Size (MB): 1.65
+    ==========================================================================================
+
+
+
+
+```python
+### train dataset의 첫번째 배치를 이용해서 모델에 추론.
+x_batch, y_batch = next(iter(train_loader)) # (input, output)
+```
+
+
+```python
+print(x_batch.shape, y_batch.shape)
+```
+
+    torch.Size([256, 1, 28, 28]) torch.Size([256])
+    
+
+
+```python
+# 추론
+pred_batch = model(x_batch) # model의 forward() 메소드가 실행.
+pred_batch.shape
+```
+
+
+
+
+    torch.Size([256, 10])
+
+
+
+
+```python
+# 첫번째 이미지에 대한 추론결과 -> class별 확률 => 가장 큰 확률의 index를 조회
+pred_batch[0].argmax()
+```
+
+
+
+
+    tensor(6)
+
+
+
+
+```python
+# 정답
+y_batch[0]
+```
+
+
+
+
+    tensor(0)
+
+
+
+
+```python
+pred_batch.argmax(dim=0)
+```
+
+
+
+
+    tensor([ 24, 130, 193, 249, 188,  24,  70,  61,  47, 113])
+
+
+
+
+```python
+y_batch[0]
+```
+
+
+
+
+    tensor(0)
+
+
+
+
+```python
+torch.sum(pred_batch.argmax(dim=1) == y_batch) # 맞은 개수
+```
+
+
+
+
+    tensor(35)
+
+
+
+
+```python
+# 전체중 맞은 비율
+24/256
+```
+
+
+
+
+    0.09375
+
+
+
+## train
+
+### 모델, loss function, optimizer 생성
+
+
+```python
+# 모델을 device로 옮긴다. (모델을 이용한 계산을 CPU에서 할지 GPU에서 할지)
+## 참고: device로 옮기는 것 => model, 모델에 주입할 input data, output data
+model = model.to(device)
+
+### Loss function
+# 다중분류문제: crossentropy, 이진분류문제: binary crossentropy => Log Loss
+# 다중분류: label이 여러개, 이진분류:: yes/no 분류
+loss_fn = nn.CrossEntropyLoss() #객체, # nn.functional.cross_entropy() 함수
+
+### Optimizer ==> 모델 파라미터들 최적화 ==> 경사하강법
+optimizer = torch.optim.Adam(model.parameters(), # 최적화 대상 파라미터들
+                             lr=LR # 학습률
+                            )
+```
+
+
+```python
+### model.parameters(): generator
+a = next(model.parameters())
+a.shape # 첫번째 레이어의 파라미터
+```
+
+
+
+
+    torch.Size([128, 784])
+
+
+
+### 학습 및 검증
+
+
+```python
+# 학습 시간 체크
+import time
+
+start = time.time()
+end = time.time()
+print(f"학습에 걸린시간: {end - start}초")
+```
+
+    학습에 걸린시간: 0.0초
+    
+
+
+```python
+BATCH_SIZE = 256 # 모델의 파라미터를 업데이트할때 사용할 데이터의 개수. 한번에 몇개 데이터를 입혁할지
+N_EPOCH = 20     # 전체 train dataset을 한번 학습한 것을 1 epoch
+LR = 0.001       # 학습률. 파라미터 update 할때 gradient값에 곱해줄 값. (gradient를 새로운 파리미터 계산할때 얼마나 반영할지 비율)
+```
+
+
+```python
+### 학습 => train(훈련) + validation(1 epoch 학습한 모델성능 검증)
+# 에폭(epoch)별 학습결과를 저장할 리스트들
+train_loss_list = []   # train set으로 검증했을때 loss => loss_fn 계산값
+val_loss_list = []     # test set으로 검증했을때 loss
+val_accuracy_list = [] # test set으로 검증했을때 accuracy(정확도) => 전체중 맞은 비율
+
+start = time.time()
+
+# Train
+for epoch in range(N_EPOCH):
+    #############################
+    # Train
+    #############################
+    # 모델을 train 모드 변경
+    model.train() 
+    # 현재 epoch의 학습 결과 loss를 저장할 변수
+    train_loss = 0.0 
+    
+    # 배치단위로 학습
+    for X_train, y_train in train_loader: # batch 단위 (input, output) 튜플로 반환.
+        
+        # 1. X, y를 device로 옮긴다. (model, X, y는 같은 device상에 위치해야한다.)
+        X_train, y_train = X_train.to(device), y_train.to(device)
+        
+        # 2. 추론
+        pred = model(X_train)
+        
+        # 3. Loss 계산
+        loss = loss_fn(pred, y_train) # args 순서: (모델예측값, 정답)
+
+        # 4. 모델의 파라미터 업데이트(최적화)
+        ## 1. 파라미터의 gradient값들을 초기화
+        optimizer.zero_grad()
+        ## 2. gradient 계산 ==> 계산결과는 파라미터.grad 속성에 저장
+        loss.backward()
+        ## 3. 파라미터(weight, bias) 업데이트 (파라미터 - 학습률*grad)
+        optimizer.step()
+
+        ### 현재 batch의 loss값을 train_loss변수에 누적
+        # 1 step 당 업데이트를 하면서 경사하강법을 누적시킨다.
+        train_loss += loss.item() # Tensor -> 파이썬 값
+    
+    # 1epoch학습 종료
+    # epoch의 평균 loss를 계산해서 리스트에 저장. (train_loss: step별 loss를 누적)
+    train_loss_list.append(train_loss / len(train_loader)) # step수 나눔.
+
+    ##########################################################
+    # validata(검증) - test(validation)set(학습할때 사용하지 않았던 데이터셋)
+    ##########################################################
+    # 모델을 검증(평가)모드 전환
+    model.eval() 
+    ## 현재 epoch 대한 검증결과(loss, accuracy)를 저장할 변수
+    val_loss = 0.0
+    val_acc = 0.0
+    
+    ## 모델 추정을 위한 연산 - forward propagation
+    ### 검증/평가/서비스 -> gradient계산이 필요없다. => 도함수를 계산할 필요없다.
+    with torch.no_grad():
+        ## batch 단위로 검증
+        for X_val, y_val in test_loader:
+            
+            # 1. device로 옮기기
+            X_val, y_val = X_val.to(device), y_val.to(device)
+            
+            # 2. 모델을 이용해 추론
+            pred_val = model(X_val)
+            
+            # 3. 검증
+            ## 1. loss 계산 + val_loss에 누적
+            val_loss = val_loss + loss_fn(pred_val, y_val).item()
+            ## 2. 정확도(accuarcy): 맞은것개수/전체개수 -> val_acc 누적
+            val_acc = val_acc + torch.sum(pred_val.argmax(dim=-1) == y_val).item()
+        # test set 전체에 대한 검증 완료 => 현 epoch에 대한 검증 완료
+    
+        # val_loss, val_acc 값을 리스트에 저장.
+        ## loss는 step 수 나눔.
+        val_loss_list.append(val_loss / len(test_loader))
+
+        ## 전체 데이터 개수로 나눈다.
+        val_accuracy_list.append(val_acc / len(test_loader.dataset))
+
+    ## 현재 epoch train 결과를 출력
+    print(f'[{epoch+1:2d}/{N_EPOCH:2d}] Train Loss: {train_loss_list[-1]}, val Loss:{val_loss_list[-1]}, Val Accuracy: {val_accuracy_list[-1]}')
+    
+
+end = time.time()
+print(f"학습에 걸린시간: {end - start}초")
+```
+
+    [ 1/20] Train Loss: 0.09930539627869923, val Loss:0.10676926715532317, Val Accuracy: 0.9661
+    [ 2/20] Train Loss: 0.08299295023147367, val Loss:0.0926186638418585, Val Accuracy: 0.9707
+    [ 3/20] Train Loss: 0.06839965317302789, val Loss:0.08665156278875656, Val Accuracy: 0.9726
+    [ 4/20] Train Loss: 0.05781208899699979, val Loss:0.08523840151028708, Val Accuracy: 0.9736
+    [ 5/20] Train Loss: 0.05003007773994508, val Loss:0.08210260072664824, Val Accuracy: 0.9735
+    [ 6/20] Train Loss: 0.04183103230137091, val Loss:0.07695596264966298, Val Accuracy: 0.9763
+    [ 7/20] Train Loss: 0.03583142790808064, val Loss:0.07574673501731014, Val Accuracy: 0.9765
+    [ 8/20] Train Loss: 0.03156701712590507, val Loss:0.08072252164711244, Val Accuracy: 0.9757
+    [ 9/20] Train Loss: 0.025805229951953914, val Loss:0.07711595484724967, Val Accuracy: 0.977
+    [10/20] Train Loss: 0.021905263245073903, val Loss:0.07760923313271632, Val Accuracy: 0.9763
+    [11/20] Train Loss: 0.018852363260956403, val Loss:0.07903235848534677, Val Accuracy: 0.9779
+    [12/20] Train Loss: 0.016362763128370747, val Loss:0.07973066859276515, Val Accuracy: 0.9781
+    [13/20] Train Loss: 0.013195699058934791, val Loss:0.08693423435497608, Val Accuracy: 0.9763
+    [14/20] Train Loss: 0.011571880840919275, val Loss:0.08191286413502893, Val Accuracy: 0.9776
+    [15/20] Train Loss: 0.010274539972281354, val Loss:0.08880715398790925, Val Accuracy: 0.9767
+    [16/20] Train Loss: 0.009247421537243372, val Loss:0.08018084807391687, Val Accuracy: 0.9796
+    [17/20] Train Loss: 0.008275181971466502, val Loss:0.08543758557962633, Val Accuracy: 0.9782
+    [18/20] Train Loss: 0.007607077921265099, val Loss:0.09429724551976904, Val Accuracy: 0.9771
+    [19/20] Train Loss: 0.005427892478809764, val Loss:0.09047829899166118, Val Accuracy: 0.9772
+    [20/20] Train Loss: 0.004022062631621439, val Loss:0.09804597115389697, Val Accuracy: 0.9762
+    학습에 걸린시간: 236.8289771080017초
+    
+
+### 학습 로그 시각화
+
+
+```python
+# epoch별 loss, accuracy의 변화흐름을 시각화
+plt.figure(figsize=(10, 5))
+
+plt.subplot(1, 2, 1)
+plt.plot(range(N_EPOCH), train_loss_list, label='trian')
+plt.plot(range(N_EPOCH), val_loss_list, label='Validation')
+plt.title('Loss')
+plt.legend()
+
+plt.subplot(1, 2, 2)
+plt.plot(range(N_EPOCH), val_accuracy_list)
+plt.title('Validaion accuracy')
+
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](output_46_0.png)
+    
+
+
+## 학습된 모델 저장 및 불러오기
+
+
+```python
+# 저장할 경로, 폴더 생성
+save_path = os.path.join(MODEL_SAVE_PATH, 'mnist')
+os.makedirs(save_path, exist_ok=True)
+
+save_file_path = os.path.join(save_path, 'mnist_mlp.pth')
+print(save_file_path)
+```
+
+    models\mnist\mnist_mlp.pth
+    
+
+
+```python
+# 모델 저장
+torch.save(model, save_file_path)
+```
+
+
+```python
+#  모델 불러오기
+load_model = torch.load(save_file_path)
+load_model
+```
+
+
+
+
+    MnistModel(
+      (lr1): Linear(in_features=784, out_features=128, bias=True)
+      (lr2): Linear(in_features=128, out_features=64, bias=True)
+      (lr3): Linear(in_features=64, out_features=10, bias=True)
+      (relu): ReLU()
+    )
+
+
+
+
+```python
+# 불러온 모델 정보 확인
+from torchinfo import summary
+summary(load_model, (BATCH_SIZE, 1, 28, 28))
+```
+
+
+
+
+    ==========================================================================================
+    Layer (type:depth-idx)                   Output Shape              Param #
+    ==========================================================================================
+    MnistModel                               [256, 10]                 --
+    ├─Linear: 1-1                            [256, 128]                100,480
+    ├─ReLU: 1-2                              [256, 128]                --
+    ├─Linear: 1-3                            [256, 64]                 8,256
+    ├─ReLU: 1-4                              [256, 64]                 --
+    ├─Linear: 1-5                            [256, 10]                 650
+    ==========================================================================================
+    Total params: 109,386
+    Trainable params: 109,386
+    Non-trainable params: 0
+    Total mult-adds (M): 28.00
+    ==========================================================================================
+    Input size (MB): 0.80
+    Forward/backward pass size (MB): 0.41
+    Params size (MB): 0.44
+    Estimated Total Size (MB): 1.65
+    ==========================================================================================
+
+
+
+## 모델 평가
+
+
+```python
+# 불러온 모델 평가
+## device 옮기기
+load_model = load_model.to(device)
+## 평가 모드 전환
+load_model.eval()
+
+test_loss, test_acc = 0.0, 0.0
+with torch.no_grad():
+    for x, y in test_loader:
+        # device 옮기기
+        x, y = x.to(device), y.to(device)
+        # 추정
+        pred = load_model(x)
+        # 평가 - loss, accuracy
+        test_loss += loss_fn(pred, y).item()
+        test_acc += torch.sum(pred.argmax(dim=-1) == y).item()
+    test_loss /= len(test_loader) # step 수로 나눔
+    test_acc /= len(test_loader.dataset) # 총 데이수로 나눔
+print(f'Test loss: {test_loss}, Test accuracy: {test_acc}')
+```
+
+    Test loss: 0.09804597115389697, Test accuracy: 0.9762
+    
+
+## 새로운 데이터 추론
+
+
+```python
+# opencv 설치
+!pip install opencv-contrib-python
+```
+
+    Collecting opencv-contrib-python
+      Obtaining dependency information for opencv-contrib-python from https://files.pythonhosted.org/packages/81/3c/bbb3ceee9fbefc505f98c24dafda68c7b3c4f83b6951c0712b4623fe4cce/opencv_contrib_python-4.8.1.78-cp37-abi3-win_amd64.whl.metadata
+      Using cached opencv_contrib_python-4.8.1.78-cp37-abi3-win_amd64.whl.metadata (20 kB)
+    Requirement already satisfied: numpy>=1.21.2 in c:\users\world\anaconda3\envs\torch\lib\site-packages (from opencv-contrib-python) (1.26.0)
+    Using cached opencv_contrib_python-4.8.1.78-cp37-abi3-win_amd64.whl (44.8 MB)
+    Installing collected packages: opencv-contrib-python
+    Successfully installed opencv-contrib-python-4.8.1.78
+    
+
+
+```python
+from glob import glob
+import cv2
+```
+
+
+```python
+# cv2.imread('test_img/num/five.png')
+```
+
+
+```python
+# 확장자가 png인 모든 파일 불러오기
+img_file_list = glob('test_img/num/*.png')
+img_file_list
+```
+
+
+
+
+    ['test_img/num\\eight.png',
+     'test_img/num\\eight2.png',
+     'test_img/num\\five.png',
+     'test_img/num\\four.png',
+     'test_img/num\\one.png',
+     'test_img/num\\seven.png',
+     'test_img/num\\seven2.png',
+     'test_img/num\\three.png',
+     'test_img/num\\three2.png',
+     'test_img/num\\two.png']
+
+
+
+
+```python
+file_cnt = len(img_file_list) # 이미지 개수
+print('개수:',file_cnt)
+
+# 분류할 이미지를 저장할 변수
+input_tensor = torch.zeros((file_cnt, 28, 28)) # 3차원배열 생성. 값: 0
+
+for i in range(file_cnt):
+    # image 읽기
+    test_img = cv2.imread(img_file_list[i], cv2.IMREAD_GRAYSCALE)
+    # 28 x 28 리사이즈
+    test_img = cv2.resize(test_img, (28, 28))
+    # ndarray -> torch.Tensor + 정규화 (pixcel: 0 ~ 1) => input_tensor에 추가
+    input_tensor[i] = transforms.ToTensor()(test_img)
+```
+
+    개수: 10
+    torch.Size([10, 28, 28])
+    
+
+
+```python
+print(type(input_tensor))
+print(input_tensor.shape)
+print(input_tensor.min(), input_tensor.max()) # 정규화 
+```
+
+    <class 'torch.Tensor'>
+    torch.Size([10, 28, 28])
+    tensor(0.) tensor(1.)
+    
+
+
+```python
+# 추론
+load_model.to(device)
+load_model.eval()
+
+input_tensor = input_tensor.to(device)
+
+pred_new = load_model(input_tensor)
+# 모델이 예측한 값을 확률로 변환 => softmax 함수
+pred_proba = nn.Softmax(dim=-1)(pred_new) # 마지막 dim 기준으로 계산, 값들
+```
+
+
+```python
+print(pred_new.shape, pred_proba.shape)
+# pred_new
+```
+
+    torch.Size([10, 10]) torch.Size([10, 10])
+    
+
+
+```python
+pred_new.sum(dim=-1)
+```
+
+
+
+
+    tensor([-37.1351, -87.1015, -55.3162, -53.1137, -21.6513, -37.1863, -91.1161,
+            -30.4024, -34.8096, -74.7791], grad_fn=<SumBackward1>)
+
+
+
+
+```python
+pred_proba.sum(dim=-1)
+```
+
+
+
+
+    tensor([1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000,
+            1.0000], grad_fn=<SumBackward1>)
+
+
+
+
+```python
+pred_label = pred_proba.argmax(dim=-1)
+pred_label
+```
+
+
+
+
+    tensor([3, 5, 8, 4, 1, 7, 3, 3, 3, 2])
+
+
+
+
+```python
+# 확률값을 뽑아낸다
+pred_label_proba = pred_proba.max(dim=-1).values
+pred_label_proba
+```
+
+
+
+
+    tensor([0.6474, 0.9989, 0.6747, 0.9993, 0.8334, 0.9916, 0.9989, 0.9984, 0.9999,
+            0.9999], grad_fn=<MaxBackward0>)
+
+
+
+
+```python
+plt.figure(figsize=(15,7))
+for i in range(file_cnt):
+    plt.subplot(2, 5, i+1)
+    plt.imshow(input_tensor[i].to('cpu').numpy(), cmap='gray')
+    plt.title(f'{pred_label[i].item()} - {pred_label_proba[1].item():.2f}')
+
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](output_67_0.png)
+    
+
+
+
+```python
+# 맞을 확률 60 % => 미국사람의 데이터셋만 학습 -> 다양한 스타일의 이미지들의 데이터를 갖고 학습시켜야한다.
+6/10
+```
+
+
+
+
+    0.6
+
+
