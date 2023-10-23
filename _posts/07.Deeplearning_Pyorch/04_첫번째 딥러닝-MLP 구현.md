@@ -1,3 +1,12 @@
+---
+layout: single
+title: '도형 그리기'
+typora-root-url: ../
+categories: Pytorch.04.DeeplearningMLP
+tag: Pytorch
+toc: true
+---
+
 # Pytorch 개발 Process
 
 1. **데이터 준비**
