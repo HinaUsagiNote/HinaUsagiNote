@@ -2,7 +2,7 @@
 layout: single
 title: '도형 그리기'
 typora-root-url: ../
-categories: Pytorch.03.Gradient_Decendiong
+categories: Pytorch.03.GradientDecendiong
 tag: Pytorch
 toc: true
 ---
