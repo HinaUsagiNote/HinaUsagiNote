@@ -1,3 +1,12 @@
+---
+layout: single
+title: '도형 그리기'
+typora-root-url: ../
+categories: Pytorch.06.DatasetDataLoader
+tag: Pytorch
+toc: true
+---
+
 # Dataset 과 DataLoader
 
 - 딥러닝 모델을 학습시키고 평가할때 사용할 데이터를 제공하기 위한 객체
