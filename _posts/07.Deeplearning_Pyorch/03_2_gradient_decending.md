@@ -1,3 +1,12 @@
+---
+layout: single
+title: '도형 그리기'
+typora-root-url: ../
+categories: Pytorch.03.Gradient_Decendiong
+tag: Pytorch
+toc: true
+---
+
 # 최적화 (Optimize)
 - 모델을 학습하는 과정이 최적화 과정이다.
 - 모델의 예측값과 실제 값의 차이 즉 **오차**를 계산하는 함수를 만들고 그 오차를 가장 적게 만드는 파라미터를 찾는 작업을 한다.
