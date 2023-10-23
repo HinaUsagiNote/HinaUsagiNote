@@ -1,0 +1,4196 @@
+---
+layout: single
+title: '도형 그리기'
+typora-root-url: ../
+categories: Pytorch.06.DatasetDataLoader
+tag: Pytorch
+toc: true
+---
+
+# Dataset 과 DataLoader
+
+- 딥러닝 모델을 학습시키고 평가할때 사용할 데이터를 제공하기 위한 객체
+- **torch.utils.data.Dataset**
+    - 원본 데이터셋(input/output dataset)을 저장하고 있으며 indexing을 통해 데이터를 하나씩 제공한다.
+        - 제공시 data augmentation등 원본데이터를 변환해서 제공하도록 처리를 할 수 있다.
+    - subscriptable, iterable 타입. 
+    > subscriptable타입: indexing을 이용해 원소 조회가 가능한 타입)
+    
+- **torch.utils.data.DataLoader**
+    - Dataset의 데이터를 batch단위로 모델에 제공하기 위한 객체.
+        - iterable 타입
+    - Dataset이 가지고 있는 데이터를 어떻게 제공할 지 설정한다.
+        - batch size, shuffle 등을 모델에 데이터제공을 어떻게 할지 방식을 설정한다.
+
+# Built-in Dataset
+
+- 파이토치는 분야별 공개 데이터셋을 종류별로 torchvision, torchtext, torchaudio 모듈을 통해 제공한다.
+- 모든 built-in dataset은 [`torch.utils.data.Dataset`](https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset)의 하위클래스로 구현되있다.
+    - [computer vision dataset](https://pytorch.org/vision/stable/datasets.html)
+    - [text dataset](https://pytorch.org/text/stable/datasets.html)
+    - [audio dataset](https://pytorch.org/audio/stable/datasets.html)
+
+## Image  Built-in dataset Loading
+torchvision 모듈을 통해 다양한 오픈소스 이미지 데이터셋을 loading할 수 있는 Dataset 클래스를 제공한다.
+
+- 각 Dataset 클래스의 주요 매개변수
+    - **root**: str
+        - Raw data를 저장할 디렉토리 경로
+    - **train**: bool
+        - True일경우 Train set을 False일 경우 Test set을 load
+    - **download**: bool
+        - True이면 root에 지정된 경로에 raw 데이터를 인터셋에서 download할지 여부. 이미 저장되 있는 경우 download하지 않는다.
+    - **transform**: function
+        - Loading한 이미지를 변환하는 function.
+            - Normalization이나 data Agumentation 처리를 한다.
+            
+
+임포트
+
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import datasets # torcchvision(파이토치 영상처리 모듈).datasets(이미지 데이터셋 제공 클래스)
+
+import numpy as np
+import matplotlib.pyplot as plt
+```
+
+
+```python
+# 데이터들을 저장할 디렉토리
+DATASET_ROOT_PATH = 'datasets' # 상대경로, 절대경로 상관없음
+```
+
+
+```python
+# MNIST Dataset 생성
+## Train dataset
+mnist_trainset = datasets.MNIST(root = DATASET_ROOT_PATH, # 원본데이터파일들을 저장된 위치.
+                                train = True,             # True: Train Set, False: Test Set
+                                download = True           # True: 원본파일이 없으면 다운로드, False: 다운받지 않는다.
+                                # transfroms = 이미지변환처리함수 # 이미지를 제공하기 전에 전처리할 함수
+)
+```
+
+
+```python
+# MNIST Dataset 생성
+## Test dataset -> train = False
+mnist_testset = datasets.MNIST(root = DATASET_ROOT_PATH, train = False, download = True)
+```
+
+
+```python
+# 타입확인
+print(type(mnist_trainset), type(mnist_testset))
+## Dataset의 하위클래스의 겍치인지(상속관계)
+print(isinstance(mnist_trainset, torch.utils.data.Dataset)) # isinstance(객체, 클래스): 객체가 클래스 타입의 객치인지 확인. 보통 상속관계를 확인
+```
+
+    <class 'torchvision.datasets.mnist.MNIST'> <class 'torchvision.datasets.mnist.MNIST'>
+    True
+    
+
+
+```python
+# Bulit-in Dataset 정보 확인
+print(mnist_trainset)
+print('='*35)
+print(mnist_testset)
+```
+
+    Dataset MNIST
+        Number of datapoints: 60000
+        Root location: datasets
+        Split: Train
+    ===================================
+    Dataset MNIST
+        Number of datapoints: 10000
+        Root location: datasets
+        Split: Test
+    
+
+
+```python
+# 총 데이터의 개수만 확인
+print(len(mnist_trainset), len(mnist_testset))
+```
+
+    60000 10000
+    
+
+
+```python
+# Dataset은 subscriptable 타입 (indexing이 가능)이다 => indexing으로 개별 데이터 조회가 가능(Dataset은 slicing/fancy indexing은 안됨 => 한개씩 조회가능)
+data1 = mnist_trainset[0]
+print(type(data1)) # Tuple: (input, output)
+print(type(data1[0]), type(data1[1]))
+```
+
+    <class 'tuple'>
+    <class 'PIL.Image.Image'> <class 'int'>
+    
+
+
+```python
+print(data1[1])
+
+data1[0]
+```
+
+    5
+    
+
+
+
+
+    
+![png](output_12_1.png)
+    
+
+
+
+
+```python
+# data1 의 ndarray 변환
+img1 = np.array(data1[0])
+print(img1.shape, img1.min(), img1.max())
+```
+
+    (28, 28) 0 255
+    
+
+이미지 시각화
+
+
+```python
+plt.imshow(img1, cmap='gray')
+plt.show()
+```
+
+
+    
+![png](output_15_0.png)
+    
+
+
+
+```python
+# 이미지 여러개 확인
+for i in range(15):
+    plt.subplot(3, 5, i+1)
+    img, label = mnist_trainset[i] # 튜플대입
+    img = np.array(img) # PIL.Image -> ndarray
+    plt.imshow(img, cmap='gray')
+    plt.title(str(label)) # label: int -> 문자열로 변환.
+
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](output_16_0.png)
+    
+
+
+
+```python
+# Output의 범주값(Class)들 확인 -> MNIST는 분류문제를 위한 데이터. 분류문제: y가 범주형(contegorical type)
+mnist_trainset.classes
+# list: index-클래스, value: 정답의 의미 문자열.
+# 0 : '0 - zero' # 정답: 0 => 0의 의미: 0 - zero
+```
+
+
+
+
+    ['0 - zero',
+     '1 - one',
+     '2 - two',
+     '3 - three',
+     '4 - four',
+     '5 - five',
+     '6 - six',
+     '7 - seven',
+     '8 - eight',
+     '9 - nine']
+
+
+
+
+```python
+mnist_trainset.class_to_idx
+# 정답의미 -> class: 딕셔너리
+```
+
+
+
+
+    {'0 - zero': 0,
+     '1 - one': 1,
+     '2 - two': 2,
+     '3 - three': 3,
+     '4 - four': 4,
+     '5 - five': 5,
+     '6 - six': 6,
+     '7 - seven': 7,
+     '8 - eight': 8,
+     '9 - nine': 9}
+
+
+
+
+```python
+pred_label = 3 # 모델이 추정한 값으로 가정.
+mnist_trainset.classes[pred_label]
+```
+
+
+
+
+    '3 - three'
+
+
+
+
+```python
+mnist_trainset.class_to_idx['3 - three'] # '3 - three' 을 모델이 어떤 값으로 추정하는지.
+```
+
+
+
+
+    3
+
+
+
+### TODO
+
+- CIFAR10 Built-in dataset 을 LOADING 후 다음을 확인하시오.
+    1. Dataset loading
+    1. train, test dataset의 데이터 개수
+    1. class index - class name
+    1. train set의 이미지 5장을 출력. label의 이름을 title로 출력.
+    
+    
+
+임포트
+
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import datasets
+
+import numpy as np
+
+import matplotlib.pyplot as plt # 시각화
+
+from IPython.display import display # PIL Image 
+```
+
+
+```python
+# 1. Dataset loading
+
+## Train dataset
+DATASET_ROOT_PATH = 'datasets'
+
+cifar_trainset = datasets.CIFAR10(root = DATASET_ROOT_PATH, train = True, download = True)
+
+## Test dataset
+cifar_testset = datasets.CIFAR10(root = DATASET_ROOT_PATH, train = False, download = True)
+```
+
+    Files already downloaded and verified
+    Files already downloaded and verified
+    
+
+
+```python
+# 2. train, test dataset의 데이터 개수
+print('trainset data 개수:', len(cifar_trainset))
+print('testset data 개수:', len(cifar_testset))
+# print(cifar_trainset, cifar_testset)
+```
+
+    trainset data 개수: 50000
+    testset data 개수: 10000
+    
+
+
+```python
+# 3. class index - class name
+## class(index: 정답) -> class name(정답의 의미)
+cifar_trainset.classes
+```
+
+
+
+
+    ['airplane',
+     'automobile',
+     'bird',
+     'cat',
+     'deer',
+     'dog',
+     'frog',
+     'horse',
+     'ship',
+     'truck']
+
+
+
+
+```python
+## class name -> class
+cifar_trainset.class_to_idx
+```
+
+
+
+
+    {'airplane': 0,
+     'automobile': 1,
+     'bird': 2,
+     'cat': 3,
+     'deer': 4,
+     'dog': 5,
+     'frog': 6,
+     'horse': 7,
+     'ship': 8,
+     'truck': 9}
+
+
+
+
+```python
+cifar_trainset.classes[0]
+```
+
+
+
+
+    'airplane'
+
+
+
+
+```python
+# Dataset 타입확인
+data1 = cifar_trainset[0] 
+print(type(data1))
+print(type(data1[0]), type(data1[1]))
+```
+
+    <class 'tuple'>
+    <class 'PIL.Image.Image'> <class 'int'>
+    
+
+
+```python
+# 이미지 1개 출력
+img1 = cifar_trainset[0][0]
+img1
+```
+
+
+
+
+    
+![png](output_30_0.png)
+    
+
+
+
+
+```python
+# img -> ndarray 변환
+img_arr = np.array(img1)
+print(img_arr.shape)
+print(img_arr.dtype)
+```
+
+    (32, 32, 3)
+    uint8
+    
+
+
+```python
+# 4. train set의 이미지 5장을 출력. label의 이름을 title로 출력.
+for i in range(5):
+    plt.subplot(1, 5, i+1)
+    img, label = cifar_trainset[i]
+    plt.imshow(img)
+    plt.title(f"{label} - {cifar_trainset.classes[label]}")
+
+plt.tight_layout()
+plt.show
+```
+
+
+
+
+    <function matplotlib.pyplot.show(close=None, block=None)>
+
+
+
+
+    
+![png](output_32_1.png)
+    
+
+
+
+```python
+# PIL Image 출력
+for i in range(5):
+    display(cifar_trainset[i][0])
+```
+
+
+    
+![png](output_33_0.png)
+    
+
+
+
+    
+![png](output_33_1.png)
+    
+
+
+
+    
+![png](output_33_2.png)
+    
+
+
+
+    
+![png](output_33_3.png)
+    
+
+
+
+    
+![png](output_33_4.png)
+    
+
+
+### transform 매개변수를 이용한 데이터전처리
+- Dataset 생성할 때 전달하는 함수로 원본데이터를 모델에 주입(feeding)하기 전 **전처리 과정을 정의한다.**
+    - Data Pipeline을 구성하는 함수
+- 매개변수로 input data 한개를 입력받아 처리한 결과를 반환하도록 구현한다.
+
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import datasets # torcchvision(파이토치 영상처리 모듈).datasets(이미지 데이터셋 제공 클래스)
+from torchvision import transforms
+
+import numpy as np
+```
+
+
+```python
+mnist_trainset1 = datasets.MNIST(root = DATASET_ROOT_PATH, train = True, download = True)
+mnist_testset1 = datasets.MNIST(root = DATASET_ROOT_PATH, train = False, download = True)
+```
+
+
+```python
+data = mnist_trainset[0][0]
+img = np.array(data)
+print('data의 type:', type(data))
+print('image의 shape:', img.shape)
+print('pixcel 최소, 최대값 -', img.min(), img.max())
+print('dtype(픽셀값의 타입):',img.dtype)
+```
+
+    data의 type: <class 'PIL.Image.Image'>
+    image의 shape: (28, 28)
+    pixcel 최소, 최대값 - 0 255
+    dtype(픽셀값의 타입): uint8
+    
+
+### torchvision.transforms.ToTensor
+ -  PIL Image나 NumPy ndarray 를 FloatTensor(float32) 로 변환하고, 이미지의 픽셀의 크기(intensity) 값을 \[0., 1.\] 범위로 비례하여 조정한다.
+ - Image 의 shape을 (channel, height, width) 로 변경한다.
+ - https://pytorch.org/vision/stable/transforms.html
+
+
+```python
+# transform 이 설정안된 경우: 원본이미지파일 - 읽어서 -> Dataset - 반환
+#             　설정된 경우: 원본이미지 -읽어서 -> Dataset-transform함수(이미지) - 반환
+mnist_trainset2 = datasets.MNIST(root=DATASET_ROOT_PATH, train=True, download=True,
+                                 transform=transforms.ToTensor() # ToTensor  클래스 객체
+                                )
+```
+
+
+```python
+data2, label = mnist_trainset2[0]
+print(label)
+```
+
+    5
+    
+
+
+```python
+print('data2의 타입:', type(data2)) # PIL.Image -> Tensor
+print(data2.shape)                 # [channel, height, width] 
+print('pixcel의 최소, 최대값:', data2.min(), data2.max()) # 0 ~ 1 사이 정규화(normalize) ==> scaling
+print('dtype(픽셀값의 타입):',data2.dtype) # uint 8 -> float32 
+```
+
+    data2의 타입: <class 'torch.Tensor'>
+    torch.Size([1, 28, 28])
+    pixcel의 최소, 최대값: tensor(0.) tensor(1.)
+    dtype(픽셀값의 타입): torch.float32
+    
+
+### transform.Normalize
+- 채널별로 지정한 평균을 뺀 뒤 지정한 표준편차로 나누어서 정규화를 진행한다.
+- ToTensor()로 변환된 데이터를 받아서 추가 변환
+        - 여려 변환을 할 경우 `torchvision.transforms.Compose` 클래스를 이용한다.
+
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import datasets # torcchvision(파이토치 영상처리 모듈).datasets(이미지 데이터셋 제공 클래스)
+from torchvision import transforms
+```
+
+
+```python
+# 여러개의 transform 함수들을 묶어서 순서대로 호출 -> Compose()를 이용해서 묶어준다
+## 리스트에 호출 될 순서대로 넣어서 전달.
+
+### ToTensor() -> NMormalize()
+transform = transforms.Compose([transforms.ToTensor(), # 첫번째 작업
+                                transforms.Normalize(mean=0.5, std=0.5) # 첫번째 변화작업결과를 받아서 두번째 변환
+                               ])
+```
+
+
+```python
+mnist_trainset3 = datasets.MNIST(root=DATASET_ROOT_PATH, train=True, download=True, transform=transform)
+mnist_testset3 = datasets.MNIST(root=DATASET_ROOT_PATH, train=False, download=True, transform=transform)
+```
+
+
+```python
+img3, label3 = mnist_trainset3[0]
+print(type(img3))
+print(img3.shape)
+print(img3.dtype)
+
+print(img3.min(), img3.max())
+```
+
+    <class 'torch.Tensor'>
+    torch.Size([1, 28, 28])
+    torch.float32
+    tensor(-1.) tensor(1.)
+    
+
+
+```python
+# channel이 여러개인 경우(color-3): mean/std = 값 => 모든 채널에 공통적으로 사용할 평균/표준편차 설정.
+#                                 mean/std = 튜플 => 각 채널별로 적용할 값을 튜플에 각각 넣어준다.
+# normalizer = transforms.Normalize(mean = 0.5, std = 0.5) # 모든 픽셀에 평균=0.5, 표준편차=0.5 로 계산.
+
+normalizer = transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)) # Channel, height, width
+transform2 = transforms.Compose([transforms.ToTensor(), normalizer])
+```
+
+
+```python
+cifar_trainset2 = datasets.CIFAR10(root=DATASET_ROOT_PATH, train=True, download=True, transform=transform2)
+```
+
+    Files already downloaded and verified
+    
+
+
+```python
+# mean/std = 튜플 각 채널별로 적용
+img4, label4 = cifar_trainset2[0]
+print(img4.shape)
+print('Red Channel의 min/max:', img4[0].min(), img4[0].max())
+print('Green Channel의 min/max:', img4[1].min(), img4[1].max())
+print('Blue Channel의 min/max:', img4[2].min(), img4[2].max())
+```
+
+    torch.Size([3, 32, 32])
+    Red Channel의 min/max: tensor(-2.1179) tensor(2.2489)
+    Green Channel의 min/max: tensor(-2.0357) tensor(2.3936)
+    Blue Channel의 min/max: tensor(-1.8044) tensor(2.2914)
+    
+
+## DataLoader 생성
+
+- DataLoader
+    - 모델이 학습하거나 추론할 때 Dataset의 데이터를 모델에 제공해준다. (feeding)
+    - initalizer속성
+        - dataset: 값을 제공하는 Dataset 타입 객체
+        - batch_size: 한번에 값을 제공할 batch 크기
+        - shuffle: 에폭마다 데이터셋을 섞을 지 여부 (default: False)
+        - drop_last: 마지막 배치의 데이터개수가 batch_size 설정보다 적을 경우 모델에 제공하지 않는다.
+
+
+
+```python
+import torch
+import torch.nn as nn
+from torchvision import datasets 
+from torch.utils.data import DataLoader
+from torchvision import transforms
+```
+
+
+```python
+transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=0.5, std=0.5)])
+```
+
+
+```python
+mnist_trainset3 = datasets.MNIST(root=DATASET_ROOT_PATH, train=True, download=True, transform=transform)
+mnist_testset3 = datasets.MNIST(root=DATASET_ROOT_PATH, train=False, download=True, transform=transform)
+```
+
+
+```python
+# mnist_xxx_3 (transform=ToTensor+Normalize)
+mnist_train_loader = DataLoader(dataset= mnist_trainset3, # 데이터를 제공받을 Dataset
+                                batch_size=200,           # 한번에 제공할 데이터 개수 
+                                shuffle=True,             # 처음제공전에 데이터들을 섞을지 여부 - Trainset: Ture, Testset: False
+                                drop_last=True)           # 제공할 데이터개수가 batch_size보다 적을 경우 제공할지 여부(True: 제공안함.) - Trainset: Ture, Testset: False
+mnist_test_loader = DataLoader(dataset = mnist_testset3, batch_size=200)
+```
+
+
+```python
+# DataLoader -> Iterable 타입 (반복문)
+## 에폭당 step 수 조회
+### drop last=True: floor(총데이터수/barch_size), False: ceil(총데이터수/barch_size)
+print(len(mnist_train_loader), len(mnist_test_loader))
+```
+
+    300 50
+    
+
+
+```python
+# DataLoader에 설정된 Dataset을 조회.
+mnist_train_loader.dataset
+```
+
+
+
+
+    Dataset MNIST
+        Number of datapoints: 60000
+        Root location: datasets
+        Split: Train
+        StandardTransform
+    Transform: Compose(
+                   ToTensor()
+                   Normalize(mean=0.5, std=0.5)
+               )
+
+
+
+
+```python
+mnist_train_loader.batch_size
+```
+
+
+
+
+    200
+
+
+
+
+```python
+# DataLaoder에서 데이터를 조회 -> Iterable타입 ==> 한번: iter(): Iterator, next(iterator), 다: for in
+batch1 = next(iter(mnist_train_loader))
+```
+
+
+```python
+print(type(batch1), len(batch1)) # [input들, output들]
+```
+
+    <class 'list'> 2
+    
+
+
+```python
+X, y = batch1
+print(type(X), type(y))
+# 원본 -> ToTensor, Normalize, X(학습데이터): 200, y(정답): 200
+```
+
+    <class 'torch.Tensor'> <class 'torch.Tensor'>
+    
+
+
+```python
+print(X.shape) # [200: batch_size, 1: channel->gray, 28:height, 28: width]
+print(y.shape) # [200: batch_size]
+```
+
+    torch.Size([200, 1, 28, 28])
+    torch.Size([200])
+    
+
+## Custom Dataset 구현
+
+1. `torch.utils.data.Dataset` 클래스를 상속한 클래스를 정의한다.
+2. `__init__(self, ...)` 
+    - DataSet객체 생성시 필요한 설정들을 초기화 한다. 
+    - ex) Data저장 경로, transform 설정 여부 등
+3. `__len__(self)`
+    - 총 데이터 수를 반환하도록 구현한다.
+    - DataLoader가 Batch 생성할 때 사용한다.
+4. `__getitem__(self, index)`
+    - index의 Data point를 반환한다.
+    - input(X), output(y) 를 튜플로 반환한다.
+    - transform이 있을 경우 변환처리한 input을 반환한다.
+
+
+```python
+# subscriptable 타입 클래스 구현 -> indexing 가능객체
+class MySub:
+
+    def __init__(self):
+        # 제공할 값들을 초기화
+        self.one = '사자'
+        self.two = '호랑이'
+        self.three = '하마'
+
+    def __len__(self):
+        # 제공할 데이터의 개수를 반환.
+        return 3
+
+    def __getitem__(self, idx):
+        # idx의 값을 반환.
+        if idx == 0:
+            return self.one
+        elif idx == 1:
+            return self.two
+        elif idx == 2:
+            return self.three
+        else:
+            raise IndexError(f"{idx}번째 값이 없습니다.")
+```
+
+
+```python
+m = MySub()
+len(m) # m.__len__(): 호출
+```
+
+
+
+
+    3
+
+
+
+
+```python
+len(mnist_testset)
+```
+
+
+
+
+    10000
+
+
+
+
+```python
+m[0], m[1], m[2]
+```
+
+
+
+
+    ('사자', '호랑이', '하마')
+
+
+
+
+```python
+mnist_testset[0][0]
+```
+
+
+
+
+    
+![png](output_67_0.png)
+    
+
+
+
+
+```python
+m[10]
+```
+
+
+    ---------------------------------------------------------------------------
+
+    IndexError                                Traceback (most recent call last)
+
+    Cell In[69], line 1
+    ----> 1 m[10]
+    
+
+    Cell In[63], line 23, in MySub.__getitem__(self, idx)
+         21     return self.three
+         22 else:
+    ---> 23     raise IndexError(f"{idx}번째 값이 없습니다.")
+    
+
+    IndexError: 10번째 값이 없습니다.
+
+
+# OxfordPet Dataset 생성
+- https://www.robots.ox.ac.uk/~vgg/data/pets/
+- 개,고양이 37가지 품종
+- 품종별로 200장 정도씩 구성됨. (품종별로 이미지 개수는 다르다)
+
+- 목표
+    - train: 70%, validation: 20%, test: 10%
+
+
+```python
+# 임포트
+import os
+import re
+from glob import glob
+import tarfile
+from PIL import Image
+
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+```
+
+
+```python
+# 경로 설정 및 폴더 생성
+DATA_ROOT_PATH = 'datasets'
+tarfile_path = os.path.join(DATA_ROOT_PATH, 'images.tar.gz')
+PET_DATA_PATH = os.path.join(DATA_ROOT_PATH, 'oxfordpet') # 압축풀 디렉토기 경로
+PET_IMAGE_PATH = os.path.join(DATA_ROOT_PATH, 'images') # 압축푼 이미지들 디렉토리 경로
+
+os.makedirs(PET_DATA_PATH, exist_ok=True)
+```
+
+
+```python
+# 압축풀기 -> zip: zipfile 모듈, tar: tarfile 모듈
+with tarfile.open(tarfile_path, 'r:gz') as tar: # 압축파일과 연결
+    tar.extractall(PET_DATA_PATH) # 압축풀 디렉토리 경로를 지정해서 압축풀기
+```
+
+
+```python
+## 모든 이미지파일의 경로를 조회 => glob
+file_list = glob(r"datasets/oxfordpet/**/*.jpg")
+print('총데이터개수:', len(file_list))
+file_list[:10]
+```
+
+    총데이터개수: 7390
+    
+
+
+
+
+    ['datasets/oxfordpet\\images\\Abyssinian_1.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_10.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_100.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_101.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_102.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_103.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_104.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_105.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_106.jpg',
+     'datasets/oxfordpet\\images\\Abyssinian_107.jpg']
+
+
+
+
+```python
+# 참조 코드
+f = file_list[0]
+print(f)
+print('파일경로에서 파일명과 확장자를 분리:', os.path.splitext(f)) # 확장자와 나머지 경로를 분리
+print('파일경로에서 파일명(확장자포함)을 분리:', os.path.basename(f))
+print('파일경로에서 디렉토리만 분리:', os.path.dirname(f))
+```
+
+    datasets/oxfordpet\images\Abyssinian_1.jpg
+    파일경로에서 파일명과 확장자를 분리: ('datasets/oxfordpet\\images\\Abyssinian_1', '.jpg')
+    파일경로에서 파일명(확장자포함)을 분리: Abyssinian_1.jpg
+    파일경로에서 디렉토리만 분리: datasets/oxfordpet\images
+    
+
+
+```python
+# 이미지들 RGB 모드의 이미지만 남기고 삭제
+remove_cnt = 0 # 몇장 삭제했는지 저장
+for idx, image_path in enumerate(file_list):
+    # print(idx, image_path)
+    # break
+    # 이미지 읽기 -> PIL.Image.open()
+    with Image.open(image_path) as img:
+        image_mode = img.mode # str: 'L' - grayscale, 'RGB': rgb
+
+    # RGB가 아니면 삭제
+    if image_mode != 'RGB':
+        os.remove(image_path)
+        remove_cnt += 1
+        print(f"{idx+1}번째 파일 삭제. 파일명: {os.path.basename(image_path)}, mode: {image_mode}")
+```
+
+    137번째 파일 삭제. 파일명: Abyssinian_34.jpg, mode: P
+    149번째 파일 삭제. 파일명: Abyssinian_5.jpg, mode: RGBA
+    2234번째 파일 삭제. 파일명: Egyptian_Mau_129.jpg, mode: L
+    2243번째 파일 삭제. 파일명: Egyptian_Mau_139.jpg, mode: P
+    2244번째 파일 삭제. 파일명: Egyptian_Mau_14.jpg, mode: RGBA
+    2250번째 파일 삭제. 파일명: Egyptian_Mau_145.jpg, mode: P
+    2271번째 파일 삭제. 파일명: Egyptian_Mau_167.jpg, mode: P
+    2280번째 파일 삭제. 파일명: Egyptian_Mau_177.jpg, mode: P
+    2290번째 파일 삭제. 파일명: Egyptian_Mau_186.jpg, mode: RGBA
+    2296번째 파일 삭제. 파일명: Egyptian_Mau_191.jpg, mode: P
+    6900번째 파일 삭제. 파일명: staffordshire_bull_terrier_2.jpg, mode: L
+    6906번째 파일 삭제. 파일명: staffordshire_bull_terrier_22.jpg, mode: L
+    
+
+
+```python
+print(f'삭제된 파일갯수: {remove_cnt}')
+```
+
+    삭제된 파일갯수: 12
+    
+
+
+```python
+# 삭제결과를 적용해서 file_list를 새로 생성
+file_list = glob(r'datasets/oxfordpet/images/*.jpg')
+len(file_list)
+```
+
+
+
+
+    7378
+
+
+
+### index_to_class, class_to_index 생성
+- index_to_class : class들을 가지는 리스트. index(0, 1, ..)로 class 조회
+- class_to_index : key: 클래스이름, value: index -> class이름 넣으면 index 반환
+- 파일명이 class
+
+
+```python
+# 0 -> american bulldog : index_to_class
+# american bulldog -> 0 : class_to_index
+```
+
+
+```python
+class_name_set = set() # 중복된 것은 하나만 저장하기 위해 set을 생성. <- 파일명: 품종_번호.jpg => 품종만 set에 추가
+```
+
+
+```python
+for file in file_list:
+    # file_list에서 파일명안의 품종을 추출한 뒤 class_name_set에 추가
+    filename = os.path.basename(file)
+    filename = os.path.splitext(filename)[0]
+    class_name = re.sub(r"_\d+", '', filename)
+    class_name_set.add(class_name)
+```
+
+
+```python
+index_to_class = list(class_name_set)
+
+# index -> 클래스이름
+index_to_class.sort()
+print(len(index_to_class))
+```
+
+    37
+    
+
+
+```python
+# 클래스이름 -> index 
+class_to_index = {name:idx for idx, name in enumerate(index_to_class)}
+class_to_index
+```
+
+
+
+
+    {'Abyssinian': 0,
+     'Bengal': 1,
+     'Birman': 2,
+     'Bombay': 3,
+     'British_Shorthair': 4,
+     'Egyptian_Mau': 5,
+     'Maine_Coon': 6,
+     'Persian': 7,
+     'Ragdoll': 8,
+     'Russian_Blue': 9,
+     'Siamese': 10,
+     'Sphynx': 11,
+     'american_bulldog': 12,
+     'american_pit_bull_terrier': 13,
+     'basset_hound': 14,
+     'beagle': 15,
+     'boxer': 16,
+     'chihuahua': 17,
+     'english_cocker_spaniel': 18,
+     'english_setter': 19,
+     'german_shorthaired': 20,
+     'great_pyrenees': 21,
+     'havanese': 22,
+     'japanese_chin': 23,
+     'keeshond': 24,
+     'leonberger': 25,
+     'miniature_pinscher': 26,
+     'newfoundland': 27,
+     'pomeranian': 28,
+     'pug': 29,
+     'saint_bernard': 30,
+     'samoyed': 31,
+     'scottish_terrier': 32,
+     'shiba_inu': 33,
+     'staffordshire_bull_terrier': 34,
+     'wheaten_terrier': 35,
+     'yorkshire_terrier': 36}
+
+
+
+
+```python
+pred = 5 # 모델 추정값
+index_to_class[pred], class_to_index['Egyptian_Mau']
+```
+
+
+
+
+    ('Egyptian_Mau', 5)
+
+
+
+
+```python
+# Train set(모델 훈련용), Test set(모델 평가/검증용) 분리 - 8:2, 7.5:2.5, 7:3, 6:4
+## 분류문제에서 분류기준에 따라서 Train, Test set을 만들어야한다.
+```
+
+
+```python
+# 개수를 확인
+## 200장 기준으로(모든 label이 대략 200장 내외있음) 7:3 으로 나눴을때 각각 몇장씩인지를 확인
+train_idx = int(200*0.7)
+print(train_idx)
+print(f'trainset: [:{train_idx}]') # 0 ~ 140
+print(f'testset: [{train_idx}:]')  # 140 ~ 200
+```
+
+    140
+    trainset: [:140]
+    testset: [140:]
+    
+
+
+```python
+# file_list의 파일경로들을 trainset, testset으로 분리
+file_list.sort() # 같은 품종의 파일들끼리 모이도록 정렬
+train_path_list, test_path_list = [], [] # train set과 test set에 넣을 파일들의 경로를 저장할 리스트
+
+cnt = 0 # class별(품종)로 몇번째 파일인지를 저장할 변수
+previous_class = '' # 이정ㅇ ㅔ처리한 파일이 어떤 class(품중)인지를 저장할 변수
+```
+
+
+```python
+for path in file_list:
+    # 경로에서 파일명만 조회
+    file_name = os.path.splitext(os.path.basename(path))[0]
+    class_name = re.sub(r'_\d+', '', file_name) # Abyssinion_1 => Abyssinian
+
+    # 현재 반복에서 처리할 class가 이전에 처리한 것과 같은지 비교
+    if class_name == previous_class: # 같은 class에 대한 처리
+        cnt += 1
+    else: # 새로운 클래스에 대한 처리
+        cnt = 1
+
+    # 현재 반복에서 처리하는 경로를 train_path_list, test_path_list 로 이동.
+    if cnt <= train_idx:
+        train_path_list.append(path)
+    else:
+        test_path_list.append(path)
+        
+    previous_class = class_name # 현재 처리한 파일의 클래스를 이전 클래스에 등록
+
+```
+
+
+```python
+print(len(file_list), len(train_path_list), len(test_path_list))
+```
+
+    7378 5180 2198
+    
+
+
+```python
+train_path_list
+```
+
+
+
+
+    ['datasets/oxfordpet/images\\Abyssinian_1.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_10.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_100.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_101.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_102.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_103.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_104.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_105.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_106.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_107.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_108.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_109.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_11.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_110.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_111.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_112.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_113.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_114.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_115.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_116.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_117.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_118.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_119.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_12.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_120.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_121.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_122.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_123.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_124.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_125.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_126.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_127.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_128.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_129.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_13.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_130.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_131.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_132.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_133.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_134.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_135.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_136.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_137.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_138.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_139.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_14.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_140.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_141.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_142.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_143.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_144.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_145.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_146.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_148.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_149.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_15.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_150.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_151.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_152.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_153.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_154.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_155.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_156.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_157.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_158.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_159.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_16.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_160.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_161.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_164.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_165.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_166.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_167.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_168.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_169.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_17.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_170.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_172.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_173.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_174.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_175.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_176.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_177.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_178.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_179.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_18.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_180.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_181.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_182.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_183.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_184.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_185.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_19.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_190.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_191.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_192.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_193.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_195.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_196.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_197.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_2.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_20.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_201.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_202.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_204.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_205.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_206.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_207.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_21.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_210.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_212.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_213.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_215.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_216.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_217.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_219.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_22.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_220.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_221.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_223.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_224.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_225.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_226.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_228.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_230.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_232.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_24.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_25.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_26.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_27.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_29.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_3.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_30.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_31.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_32.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_33.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_36.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_37.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_4.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_40.jpg',
+     'datasets/oxfordpet/images\\Bengal_1.jpg',
+     'datasets/oxfordpet/images\\Bengal_10.jpg',
+     'datasets/oxfordpet/images\\Bengal_100.jpg',
+     'datasets/oxfordpet/images\\Bengal_101.jpg',
+     'datasets/oxfordpet/images\\Bengal_102.jpg',
+     'datasets/oxfordpet/images\\Bengal_103.jpg',
+     'datasets/oxfordpet/images\\Bengal_104.jpg',
+     'datasets/oxfordpet/images\\Bengal_105.jpg',
+     'datasets/oxfordpet/images\\Bengal_106.jpg',
+     'datasets/oxfordpet/images\\Bengal_107.jpg',
+     'datasets/oxfordpet/images\\Bengal_108.jpg',
+     'datasets/oxfordpet/images\\Bengal_109.jpg',
+     'datasets/oxfordpet/images\\Bengal_11.jpg',
+     'datasets/oxfordpet/images\\Bengal_110.jpg',
+     'datasets/oxfordpet/images\\Bengal_111.jpg',
+     'datasets/oxfordpet/images\\Bengal_112.jpg',
+     'datasets/oxfordpet/images\\Bengal_113.jpg',
+     'datasets/oxfordpet/images\\Bengal_114.jpg',
+     'datasets/oxfordpet/images\\Bengal_115.jpg',
+     'datasets/oxfordpet/images\\Bengal_116.jpg',
+     'datasets/oxfordpet/images\\Bengal_117.jpg',
+     'datasets/oxfordpet/images\\Bengal_118.jpg',
+     'datasets/oxfordpet/images\\Bengal_119.jpg',
+     'datasets/oxfordpet/images\\Bengal_12.jpg',
+     'datasets/oxfordpet/images\\Bengal_120.jpg',
+     'datasets/oxfordpet/images\\Bengal_121.jpg',
+     'datasets/oxfordpet/images\\Bengal_122.jpg',
+     'datasets/oxfordpet/images\\Bengal_123.jpg',
+     'datasets/oxfordpet/images\\Bengal_124.jpg',
+     'datasets/oxfordpet/images\\Bengal_125.jpg',
+     'datasets/oxfordpet/images\\Bengal_126.jpg',
+     'datasets/oxfordpet/images\\Bengal_127.jpg',
+     'datasets/oxfordpet/images\\Bengal_128.jpg',
+     'datasets/oxfordpet/images\\Bengal_129.jpg',
+     'datasets/oxfordpet/images\\Bengal_13.jpg',
+     'datasets/oxfordpet/images\\Bengal_130.jpg',
+     'datasets/oxfordpet/images\\Bengal_131.jpg',
+     'datasets/oxfordpet/images\\Bengal_132.jpg',
+     'datasets/oxfordpet/images\\Bengal_133.jpg',
+     'datasets/oxfordpet/images\\Bengal_134.jpg',
+     'datasets/oxfordpet/images\\Bengal_135.jpg',
+     'datasets/oxfordpet/images\\Bengal_136.jpg',
+     'datasets/oxfordpet/images\\Bengal_137.jpg',
+     'datasets/oxfordpet/images\\Bengal_138.jpg',
+     'datasets/oxfordpet/images\\Bengal_139.jpg',
+     'datasets/oxfordpet/images\\Bengal_14.jpg',
+     'datasets/oxfordpet/images\\Bengal_140.jpg',
+     'datasets/oxfordpet/images\\Bengal_141.jpg',
+     'datasets/oxfordpet/images\\Bengal_142.jpg',
+     'datasets/oxfordpet/images\\Bengal_143.jpg',
+     'datasets/oxfordpet/images\\Bengal_144.jpg',
+     'datasets/oxfordpet/images\\Bengal_145.jpg',
+     'datasets/oxfordpet/images\\Bengal_146.jpg',
+     'datasets/oxfordpet/images\\Bengal_147.jpg',
+     'datasets/oxfordpet/images\\Bengal_148.jpg',
+     'datasets/oxfordpet/images\\Bengal_149.jpg',
+     'datasets/oxfordpet/images\\Bengal_15.jpg',
+     'datasets/oxfordpet/images\\Bengal_150.jpg',
+     'datasets/oxfordpet/images\\Bengal_151.jpg',
+     'datasets/oxfordpet/images\\Bengal_152.jpg',
+     'datasets/oxfordpet/images\\Bengal_153.jpg',
+     'datasets/oxfordpet/images\\Bengal_154.jpg',
+     'datasets/oxfordpet/images\\Bengal_155.jpg',
+     'datasets/oxfordpet/images\\Bengal_156.jpg',
+     'datasets/oxfordpet/images\\Bengal_157.jpg',
+     'datasets/oxfordpet/images\\Bengal_158.jpg',
+     'datasets/oxfordpet/images\\Bengal_159.jpg',
+     'datasets/oxfordpet/images\\Bengal_16.jpg',
+     'datasets/oxfordpet/images\\Bengal_160.jpg',
+     'datasets/oxfordpet/images\\Bengal_161.jpg',
+     'datasets/oxfordpet/images\\Bengal_162.jpg',
+     'datasets/oxfordpet/images\\Bengal_163.jpg',
+     'datasets/oxfordpet/images\\Bengal_164.jpg',
+     'datasets/oxfordpet/images\\Bengal_165.jpg',
+     'datasets/oxfordpet/images\\Bengal_166.jpg',
+     'datasets/oxfordpet/images\\Bengal_167.jpg',
+     'datasets/oxfordpet/images\\Bengal_168.jpg',
+     'datasets/oxfordpet/images\\Bengal_169.jpg',
+     'datasets/oxfordpet/images\\Bengal_17.jpg',
+     'datasets/oxfordpet/images\\Bengal_170.jpg',
+     'datasets/oxfordpet/images\\Bengal_171.jpg',
+     'datasets/oxfordpet/images\\Bengal_172.jpg',
+     'datasets/oxfordpet/images\\Bengal_173.jpg',
+     'datasets/oxfordpet/images\\Bengal_174.jpg',
+     'datasets/oxfordpet/images\\Bengal_175.jpg',
+     'datasets/oxfordpet/images\\Bengal_176.jpg',
+     'datasets/oxfordpet/images\\Bengal_177.jpg',
+     'datasets/oxfordpet/images\\Bengal_178.jpg',
+     'datasets/oxfordpet/images\\Bengal_179.jpg',
+     'datasets/oxfordpet/images\\Bengal_18.jpg',
+     'datasets/oxfordpet/images\\Bengal_180.jpg',
+     'datasets/oxfordpet/images\\Bengal_182.jpg',
+     'datasets/oxfordpet/images\\Bengal_183.jpg',
+     'datasets/oxfordpet/images\\Bengal_184.jpg',
+     'datasets/oxfordpet/images\\Bengal_185.jpg',
+     'datasets/oxfordpet/images\\Bengal_186.jpg',
+     'datasets/oxfordpet/images\\Bengal_187.jpg',
+     'datasets/oxfordpet/images\\Bengal_188.jpg',
+     'datasets/oxfordpet/images\\Bengal_189.jpg',
+     'datasets/oxfordpet/images\\Bengal_19.jpg',
+     'datasets/oxfordpet/images\\Bengal_190.jpg',
+     'datasets/oxfordpet/images\\Bengal_191.jpg',
+     'datasets/oxfordpet/images\\Bengal_192.jpg',
+     'datasets/oxfordpet/images\\Bengal_193.jpg',
+     'datasets/oxfordpet/images\\Bengal_194.jpg',
+     'datasets/oxfordpet/images\\Bengal_195.jpg',
+     'datasets/oxfordpet/images\\Bengal_196.jpg',
+     'datasets/oxfordpet/images\\Bengal_197.jpg',
+     'datasets/oxfordpet/images\\Bengal_198.jpg',
+     'datasets/oxfordpet/images\\Bengal_199.jpg',
+     'datasets/oxfordpet/images\\Bengal_2.jpg',
+     'datasets/oxfordpet/images\\Bengal_20.jpg',
+     'datasets/oxfordpet/images\\Bengal_200.jpg',
+     'datasets/oxfordpet/images\\Bengal_201.jpg',
+     'datasets/oxfordpet/images\\Bengal_21.jpg',
+     'datasets/oxfordpet/images\\Bengal_22.jpg',
+     'datasets/oxfordpet/images\\Bengal_23.jpg',
+     'datasets/oxfordpet/images\\Bengal_24.jpg',
+     'datasets/oxfordpet/images\\Bengal_25.jpg',
+     'datasets/oxfordpet/images\\Bengal_26.jpg',
+     'datasets/oxfordpet/images\\Bengal_27.jpg',
+     'datasets/oxfordpet/images\\Bengal_28.jpg',
+     'datasets/oxfordpet/images\\Bengal_29.jpg',
+     'datasets/oxfordpet/images\\Bengal_3.jpg',
+     'datasets/oxfordpet/images\\Bengal_30.jpg',
+     'datasets/oxfordpet/images\\Bengal_31.jpg',
+     'datasets/oxfordpet/images\\Bengal_32.jpg',
+     'datasets/oxfordpet/images\\Bengal_33.jpg',
+     'datasets/oxfordpet/images\\Bengal_34.jpg',
+     'datasets/oxfordpet/images\\Bengal_35.jpg',
+     'datasets/oxfordpet/images\\Bengal_36.jpg',
+     'datasets/oxfordpet/images\\Bengal_37.jpg',
+     'datasets/oxfordpet/images\\Bengal_38.jpg',
+     'datasets/oxfordpet/images\\Bengal_39.jpg',
+     'datasets/oxfordpet/images\\Bengal_4.jpg',
+     'datasets/oxfordpet/images\\Bengal_40.jpg',
+     'datasets/oxfordpet/images\\Bengal_41.jpg',
+     'datasets/oxfordpet/images\\Bengal_42.jpg',
+     'datasets/oxfordpet/images\\Bengal_43.jpg',
+     'datasets/oxfordpet/images\\Bengal_44.jpg',
+     'datasets/oxfordpet/images\\Birman_1.jpg',
+     'datasets/oxfordpet/images\\Birman_10.jpg',
+     'datasets/oxfordpet/images\\Birman_100.jpg',
+     'datasets/oxfordpet/images\\Birman_101.jpg',
+     'datasets/oxfordpet/images\\Birman_102.jpg',
+     'datasets/oxfordpet/images\\Birman_103.jpg',
+     'datasets/oxfordpet/images\\Birman_104.jpg',
+     'datasets/oxfordpet/images\\Birman_105.jpg',
+     'datasets/oxfordpet/images\\Birman_106.jpg',
+     'datasets/oxfordpet/images\\Birman_107.jpg',
+     'datasets/oxfordpet/images\\Birman_108.jpg',
+     'datasets/oxfordpet/images\\Birman_109.jpg',
+     'datasets/oxfordpet/images\\Birman_11.jpg',
+     'datasets/oxfordpet/images\\Birman_110.jpg',
+     'datasets/oxfordpet/images\\Birman_111.jpg',
+     'datasets/oxfordpet/images\\Birman_112.jpg',
+     'datasets/oxfordpet/images\\Birman_113.jpg',
+     'datasets/oxfordpet/images\\Birman_114.jpg',
+     'datasets/oxfordpet/images\\Birman_115.jpg',
+     'datasets/oxfordpet/images\\Birman_116.jpg',
+     'datasets/oxfordpet/images\\Birman_117.jpg',
+     'datasets/oxfordpet/images\\Birman_118.jpg',
+     'datasets/oxfordpet/images\\Birman_119.jpg',
+     'datasets/oxfordpet/images\\Birman_12.jpg',
+     'datasets/oxfordpet/images\\Birman_120.jpg',
+     'datasets/oxfordpet/images\\Birman_121.jpg',
+     'datasets/oxfordpet/images\\Birman_122.jpg',
+     'datasets/oxfordpet/images\\Birman_123.jpg',
+     'datasets/oxfordpet/images\\Birman_124.jpg',
+     'datasets/oxfordpet/images\\Birman_125.jpg',
+     'datasets/oxfordpet/images\\Birman_126.jpg',
+     'datasets/oxfordpet/images\\Birman_127.jpg',
+     'datasets/oxfordpet/images\\Birman_128.jpg',
+     'datasets/oxfordpet/images\\Birman_129.jpg',
+     'datasets/oxfordpet/images\\Birman_13.jpg',
+     'datasets/oxfordpet/images\\Birman_130.jpg',
+     'datasets/oxfordpet/images\\Birman_131.jpg',
+     'datasets/oxfordpet/images\\Birman_132.jpg',
+     'datasets/oxfordpet/images\\Birman_133.jpg',
+     'datasets/oxfordpet/images\\Birman_134.jpg',
+     'datasets/oxfordpet/images\\Birman_135.jpg',
+     'datasets/oxfordpet/images\\Birman_136.jpg',
+     'datasets/oxfordpet/images\\Birman_137.jpg',
+     'datasets/oxfordpet/images\\Birman_138.jpg',
+     'datasets/oxfordpet/images\\Birman_139.jpg',
+     'datasets/oxfordpet/images\\Birman_14.jpg',
+     'datasets/oxfordpet/images\\Birman_140.jpg',
+     'datasets/oxfordpet/images\\Birman_141.jpg',
+     'datasets/oxfordpet/images\\Birman_142.jpg',
+     'datasets/oxfordpet/images\\Birman_143.jpg',
+     'datasets/oxfordpet/images\\Birman_144.jpg',
+     'datasets/oxfordpet/images\\Birman_145.jpg',
+     'datasets/oxfordpet/images\\Birman_146.jpg',
+     'datasets/oxfordpet/images\\Birman_147.jpg',
+     'datasets/oxfordpet/images\\Birman_148.jpg',
+     'datasets/oxfordpet/images\\Birman_149.jpg',
+     'datasets/oxfordpet/images\\Birman_15.jpg',
+     'datasets/oxfordpet/images\\Birman_150.jpg',
+     'datasets/oxfordpet/images\\Birman_151.jpg',
+     'datasets/oxfordpet/images\\Birman_152.jpg',
+     'datasets/oxfordpet/images\\Birman_153.jpg',
+     'datasets/oxfordpet/images\\Birman_154.jpg',
+     'datasets/oxfordpet/images\\Birman_155.jpg',
+     'datasets/oxfordpet/images\\Birman_156.jpg',
+     'datasets/oxfordpet/images\\Birman_157.jpg',
+     'datasets/oxfordpet/images\\Birman_158.jpg',
+     'datasets/oxfordpet/images\\Birman_159.jpg',
+     'datasets/oxfordpet/images\\Birman_16.jpg',
+     'datasets/oxfordpet/images\\Birman_160.jpg',
+     'datasets/oxfordpet/images\\Birman_161.jpg',
+     'datasets/oxfordpet/images\\Birman_162.jpg',
+     'datasets/oxfordpet/images\\Birman_163.jpg',
+     'datasets/oxfordpet/images\\Birman_164.jpg',
+     'datasets/oxfordpet/images\\Birman_165.jpg',
+     'datasets/oxfordpet/images\\Birman_166.jpg',
+     'datasets/oxfordpet/images\\Birman_167.jpg',
+     'datasets/oxfordpet/images\\Birman_168.jpg',
+     'datasets/oxfordpet/images\\Birman_169.jpg',
+     'datasets/oxfordpet/images\\Birman_17.jpg',
+     'datasets/oxfordpet/images\\Birman_170.jpg',
+     'datasets/oxfordpet/images\\Birman_171.jpg',
+     'datasets/oxfordpet/images\\Birman_172.jpg',
+     'datasets/oxfordpet/images\\Birman_173.jpg',
+     'datasets/oxfordpet/images\\Birman_174.jpg',
+     'datasets/oxfordpet/images\\Birman_175.jpg',
+     'datasets/oxfordpet/images\\Birman_176.jpg',
+     'datasets/oxfordpet/images\\Birman_177.jpg',
+     'datasets/oxfordpet/images\\Birman_178.jpg',
+     'datasets/oxfordpet/images\\Birman_179.jpg',
+     'datasets/oxfordpet/images\\Birman_18.jpg',
+     'datasets/oxfordpet/images\\Birman_180.jpg',
+     'datasets/oxfordpet/images\\Birman_181.jpg',
+     'datasets/oxfordpet/images\\Birman_182.jpg',
+     'datasets/oxfordpet/images\\Birman_183.jpg',
+     'datasets/oxfordpet/images\\Birman_184.jpg',
+     'datasets/oxfordpet/images\\Birman_185.jpg',
+     'datasets/oxfordpet/images\\Birman_186.jpg',
+     'datasets/oxfordpet/images\\Birman_187.jpg',
+     'datasets/oxfordpet/images\\Birman_188.jpg',
+     'datasets/oxfordpet/images\\Birman_189.jpg',
+     'datasets/oxfordpet/images\\Birman_19.jpg',
+     'datasets/oxfordpet/images\\Birman_190.jpg',
+     'datasets/oxfordpet/images\\Birman_191.jpg',
+     'datasets/oxfordpet/images\\Birman_192.jpg',
+     'datasets/oxfordpet/images\\Birman_193.jpg',
+     'datasets/oxfordpet/images\\Birman_194.jpg',
+     'datasets/oxfordpet/images\\Birman_196.jpg',
+     'datasets/oxfordpet/images\\Birman_197.jpg',
+     'datasets/oxfordpet/images\\Birman_198.jpg',
+     'datasets/oxfordpet/images\\Birman_199.jpg',
+     'datasets/oxfordpet/images\\Birman_2.jpg',
+     'datasets/oxfordpet/images\\Birman_20.jpg',
+     'datasets/oxfordpet/images\\Birman_200.jpg',
+     'datasets/oxfordpet/images\\Birman_201.jpg',
+     'datasets/oxfordpet/images\\Birman_21.jpg',
+     'datasets/oxfordpet/images\\Birman_22.jpg',
+     'datasets/oxfordpet/images\\Birman_23.jpg',
+     'datasets/oxfordpet/images\\Birman_24.jpg',
+     'datasets/oxfordpet/images\\Birman_25.jpg',
+     'datasets/oxfordpet/images\\Birman_26.jpg',
+     'datasets/oxfordpet/images\\Birman_27.jpg',
+     'datasets/oxfordpet/images\\Birman_28.jpg',
+     'datasets/oxfordpet/images\\Birman_29.jpg',
+     'datasets/oxfordpet/images\\Birman_3.jpg',
+     'datasets/oxfordpet/images\\Birman_30.jpg',
+     'datasets/oxfordpet/images\\Birman_31.jpg',
+     'datasets/oxfordpet/images\\Birman_32.jpg',
+     'datasets/oxfordpet/images\\Birman_33.jpg',
+     'datasets/oxfordpet/images\\Birman_34.jpg',
+     'datasets/oxfordpet/images\\Birman_35.jpg',
+     'datasets/oxfordpet/images\\Birman_36.jpg',
+     'datasets/oxfordpet/images\\Birman_37.jpg',
+     'datasets/oxfordpet/images\\Birman_38.jpg',
+     'datasets/oxfordpet/images\\Birman_39.jpg',
+     'datasets/oxfordpet/images\\Birman_4.jpg',
+     'datasets/oxfordpet/images\\Birman_40.jpg',
+     'datasets/oxfordpet/images\\Birman_41.jpg',
+     'datasets/oxfordpet/images\\Birman_42.jpg',
+     'datasets/oxfordpet/images\\Birman_43.jpg',
+     'datasets/oxfordpet/images\\Birman_44.jpg',
+     'datasets/oxfordpet/images\\Bombay_1.jpg',
+     'datasets/oxfordpet/images\\Bombay_10.jpg',
+     'datasets/oxfordpet/images\\Bombay_100.jpg',
+     'datasets/oxfordpet/images\\Bombay_101.jpg',
+     'datasets/oxfordpet/images\\Bombay_102.jpg',
+     'datasets/oxfordpet/images\\Bombay_103.jpg',
+     'datasets/oxfordpet/images\\Bombay_104.jpg',
+     'datasets/oxfordpet/images\\Bombay_105.jpg',
+     'datasets/oxfordpet/images\\Bombay_106.jpg',
+     'datasets/oxfordpet/images\\Bombay_107.jpg',
+     'datasets/oxfordpet/images\\Bombay_108.jpg',
+     'datasets/oxfordpet/images\\Bombay_109.jpg',
+     'datasets/oxfordpet/images\\Bombay_11.jpg',
+     'datasets/oxfordpet/images\\Bombay_110.jpg',
+     'datasets/oxfordpet/images\\Bombay_111.jpg',
+     'datasets/oxfordpet/images\\Bombay_112.jpg',
+     'datasets/oxfordpet/images\\Bombay_113.jpg',
+     'datasets/oxfordpet/images\\Bombay_114.jpg',
+     'datasets/oxfordpet/images\\Bombay_115.jpg',
+     'datasets/oxfordpet/images\\Bombay_116.jpg',
+     'datasets/oxfordpet/images\\Bombay_117.jpg',
+     'datasets/oxfordpet/images\\Bombay_118.jpg',
+     'datasets/oxfordpet/images\\Bombay_119.jpg',
+     'datasets/oxfordpet/images\\Bombay_12.jpg',
+     'datasets/oxfordpet/images\\Bombay_120.jpg',
+     'datasets/oxfordpet/images\\Bombay_121.jpg',
+     'datasets/oxfordpet/images\\Bombay_122.jpg',
+     'datasets/oxfordpet/images\\Bombay_123.jpg',
+     'datasets/oxfordpet/images\\Bombay_125.jpg',
+     'datasets/oxfordpet/images\\Bombay_126.jpg',
+     'datasets/oxfordpet/images\\Bombay_127.jpg',
+     'datasets/oxfordpet/images\\Bombay_128.jpg',
+     'datasets/oxfordpet/images\\Bombay_129.jpg',
+     'datasets/oxfordpet/images\\Bombay_13.jpg',
+     'datasets/oxfordpet/images\\Bombay_130.jpg',
+     'datasets/oxfordpet/images\\Bombay_131.jpg',
+     'datasets/oxfordpet/images\\Bombay_132.jpg',
+     'datasets/oxfordpet/images\\Bombay_133.jpg',
+     'datasets/oxfordpet/images\\Bombay_134.jpg',
+     'datasets/oxfordpet/images\\Bombay_135.jpg',
+     'datasets/oxfordpet/images\\Bombay_136.jpg',
+     'datasets/oxfordpet/images\\Bombay_137.jpg',
+     'datasets/oxfordpet/images\\Bombay_138.jpg',
+     'datasets/oxfordpet/images\\Bombay_139.jpg',
+     'datasets/oxfordpet/images\\Bombay_14.jpg',
+     'datasets/oxfordpet/images\\Bombay_140.jpg',
+     'datasets/oxfordpet/images\\Bombay_141.jpg',
+     'datasets/oxfordpet/images\\Bombay_143.jpg',
+     'datasets/oxfordpet/images\\Bombay_144.jpg',
+     'datasets/oxfordpet/images\\Bombay_145.jpg',
+     'datasets/oxfordpet/images\\Bombay_146.jpg',
+     'datasets/oxfordpet/images\\Bombay_148.jpg',
+     'datasets/oxfordpet/images\\Bombay_15.jpg',
+     'datasets/oxfordpet/images\\Bombay_150.jpg',
+     'datasets/oxfordpet/images\\Bombay_151.jpg',
+     'datasets/oxfordpet/images\\Bombay_152.jpg',
+     'datasets/oxfordpet/images\\Bombay_153.jpg',
+     'datasets/oxfordpet/images\\Bombay_154.jpg',
+     'datasets/oxfordpet/images\\Bombay_155.jpg',
+     'datasets/oxfordpet/images\\Bombay_156.jpg',
+     'datasets/oxfordpet/images\\Bombay_157.jpg',
+     'datasets/oxfordpet/images\\Bombay_158.jpg',
+     'datasets/oxfordpet/images\\Bombay_159.jpg',
+     'datasets/oxfordpet/images\\Bombay_16.jpg',
+     'datasets/oxfordpet/images\\Bombay_160.jpg',
+     'datasets/oxfordpet/images\\Bombay_161.jpg',
+     'datasets/oxfordpet/images\\Bombay_162.jpg',
+     'datasets/oxfordpet/images\\Bombay_163.jpg',
+     'datasets/oxfordpet/images\\Bombay_164.jpg',
+     'datasets/oxfordpet/images\\Bombay_166.jpg',
+     'datasets/oxfordpet/images\\Bombay_167.jpg',
+     'datasets/oxfordpet/images\\Bombay_168.jpg',
+     'datasets/oxfordpet/images\\Bombay_169.jpg',
+     'datasets/oxfordpet/images\\Bombay_170.jpg',
+     'datasets/oxfordpet/images\\Bombay_171.jpg',
+     'datasets/oxfordpet/images\\Bombay_172.jpg',
+     'datasets/oxfordpet/images\\Bombay_173.jpg',
+     'datasets/oxfordpet/images\\Bombay_174.jpg',
+     'datasets/oxfordpet/images\\Bombay_175.jpg',
+     'datasets/oxfordpet/images\\Bombay_176.jpg',
+     'datasets/oxfordpet/images\\Bombay_177.jpg',
+     'datasets/oxfordpet/images\\Bombay_178.jpg',
+     'datasets/oxfordpet/images\\Bombay_179.jpg',
+     'datasets/oxfordpet/images\\Bombay_18.jpg',
+     'datasets/oxfordpet/images\\Bombay_180.jpg',
+     'datasets/oxfordpet/images\\Bombay_181.jpg',
+     'datasets/oxfordpet/images\\Bombay_182.jpg',
+     'datasets/oxfordpet/images\\Bombay_183.jpg',
+     'datasets/oxfordpet/images\\Bombay_184.jpg',
+     'datasets/oxfordpet/images\\Bombay_185.jpg',
+     'datasets/oxfordpet/images\\Bombay_186.jpg',
+     'datasets/oxfordpet/images\\Bombay_188.jpg',
+     'datasets/oxfordpet/images\\Bombay_189.jpg',
+     'datasets/oxfordpet/images\\Bombay_19.jpg',
+     'datasets/oxfordpet/images\\Bombay_190.jpg',
+     'datasets/oxfordpet/images\\Bombay_191.jpg',
+     'datasets/oxfordpet/images\\Bombay_192.jpg',
+     'datasets/oxfordpet/images\\Bombay_193.jpg',
+     'datasets/oxfordpet/images\\Bombay_194.jpg',
+     'datasets/oxfordpet/images\\Bombay_198.jpg',
+     'datasets/oxfordpet/images\\Bombay_2.jpg',
+     'datasets/oxfordpet/images\\Bombay_20.jpg',
+     'datasets/oxfordpet/images\\Bombay_200.jpg',
+     'datasets/oxfordpet/images\\Bombay_201.jpg',
+     'datasets/oxfordpet/images\\Bombay_202.jpg',
+     'datasets/oxfordpet/images\\Bombay_203.jpg',
+     'datasets/oxfordpet/images\\Bombay_204.jpg',
+     'datasets/oxfordpet/images\\Bombay_205.jpg',
+     'datasets/oxfordpet/images\\Bombay_206.jpg',
+     'datasets/oxfordpet/images\\Bombay_208.jpg',
+     'datasets/oxfordpet/images\\Bombay_209.jpg',
+     'datasets/oxfordpet/images\\Bombay_21.jpg',
+     'datasets/oxfordpet/images\\Bombay_210.jpg',
+     'datasets/oxfordpet/images\\Bombay_213.jpg',
+     'datasets/oxfordpet/images\\Bombay_214.jpg',
+     'datasets/oxfordpet/images\\Bombay_215.jpg',
+     'datasets/oxfordpet/images\\Bombay_217.jpg',
+     'datasets/oxfordpet/images\\Bombay_22.jpg',
+     'datasets/oxfordpet/images\\Bombay_220.jpg',
+     'datasets/oxfordpet/images\\Bombay_221.jpg',
+     'datasets/oxfordpet/images\\Bombay_23.jpg',
+     'datasets/oxfordpet/images\\Bombay_24.jpg',
+     'datasets/oxfordpet/images\\Bombay_25.jpg',
+     'datasets/oxfordpet/images\\Bombay_26.jpg',
+     'datasets/oxfordpet/images\\Bombay_27.jpg',
+     'datasets/oxfordpet/images\\Bombay_29.jpg',
+     'datasets/oxfordpet/images\\Bombay_3.jpg',
+     'datasets/oxfordpet/images\\Bombay_30.jpg',
+     'datasets/oxfordpet/images\\Bombay_31.jpg',
+     'datasets/oxfordpet/images\\Bombay_32.jpg',
+     'datasets/oxfordpet/images\\Bombay_33.jpg',
+     'datasets/oxfordpet/images\\Bombay_34.jpg',
+     'datasets/oxfordpet/images\\Bombay_36.jpg',
+     'datasets/oxfordpet/images\\Bombay_37.jpg',
+     'datasets/oxfordpet/images\\Bombay_38.jpg',
+     'datasets/oxfordpet/images\\Bombay_39.jpg',
+     'datasets/oxfordpet/images\\Bombay_4.jpg',
+     'datasets/oxfordpet/images\\Bombay_40.jpg',
+     'datasets/oxfordpet/images\\Bombay_41.jpg',
+     'datasets/oxfordpet/images\\Bombay_42.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_10.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_100.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_101.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_102.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_103.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_104.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_105.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_106.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_107.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_108.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_109.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_110.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_111.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_112.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_113.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_114.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_115.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_116.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_117.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_118.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_119.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_120.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_121.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_122.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_123.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_124.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_125.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_126.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_127.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_128.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_129.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_130.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_133.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_134.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_135.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_136.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_137.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_139.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_140.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_141.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_144.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_145.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_148.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_149.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_15.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_151.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_153.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_154.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_155.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_156.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_157.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_158.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_159.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_16.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_160.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_161.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_162.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_163.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_164.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_165.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_166.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_167.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_168.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_169.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_17.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_170.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_172.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_173.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_174.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_175.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_176.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_177.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_178.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_179.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_18.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_180.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_181.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_182.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_183.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_184.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_185.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_186.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_187.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_188.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_189.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_190.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_193.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_195.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_196.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_197.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_198.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_199.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_2.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_200.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_201.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_203.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_204.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_205.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_207.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_209.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_21.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_210.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_212.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_213.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_218.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_22.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_223.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_230.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_239.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_241.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_248.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_25.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_258.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_26.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_263.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_265.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_266.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_267.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_268.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_269.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_27.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_270.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_271.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_272.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_273.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_274.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_275.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_276.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_277.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_278.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_28.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_29.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_3.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_30.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_31.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_32.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_33.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_34.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_36.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_37.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_1.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_10.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_100.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_101.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_102.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_103.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_104.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_105.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_106.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_107.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_108.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_109.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_11.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_110.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_111.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_112.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_113.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_114.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_115.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_116.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_117.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_118.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_119.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_12.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_120.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_121.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_122.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_123.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_124.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_125.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_126.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_127.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_128.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_13.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_130.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_131.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_132.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_133.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_134.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_136.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_138.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_140.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_141.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_142.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_143.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_144.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_146.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_147.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_148.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_149.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_15.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_150.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_151.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_152.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_153.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_154.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_155.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_156.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_157.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_16.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_160.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_161.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_162.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_163.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_164.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_165.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_168.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_170.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_171.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_172.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_173.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_174.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_175.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_176.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_178.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_179.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_18.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_180.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_181.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_182.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_183.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_184.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_185.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_187.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_188.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_189.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_19.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_190.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_192.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_193.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_194.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_195.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_196.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_197.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_198.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_199.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_2.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_20.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_201.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_202.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_204.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_207.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_209.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_21.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_210.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_212.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_213.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_214.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_215.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_218.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_219.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_22.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_220.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_221.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_222.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_223.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_224.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_23.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_25.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_26.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_27.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_28.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_29.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_3.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_30.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_31.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_33.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_34.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_35.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_36.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_39.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_4.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_40.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_41.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_42.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_43.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_44.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_45.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_46.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_47.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_1.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_10.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_100.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_101.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_102.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_103.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_104.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_105.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_106.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_107.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_108.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_109.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_110.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_111.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_112.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_115.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_116.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_117.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_119.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_121.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_123.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_124.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_126.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_127.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_128.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_129.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_13.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_131.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_132.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_133.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_134.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_135.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_136.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_137.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_138.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_139.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_14.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_140.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_141.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_142.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_143.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_144.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_145.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_146.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_147.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_148.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_149.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_150.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_151.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_152.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_153.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_154.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_155.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_157.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_158.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_159.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_16.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_160.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_161.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_162.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_163.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_164.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_167.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_168.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_169.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_17.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_170.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_171.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_173.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_174.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_175.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_176.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_18.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_180.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_182.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_184.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_186.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_187.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_189.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_19.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_191.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_192.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_193.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_194.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_195.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_196.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_197.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_2.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_201.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_203.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_204.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_205.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_206.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_207.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_208.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_21.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_210.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_211.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_213.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_214.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_217.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_219.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_222.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_227.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_23.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_231.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_238.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_239.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_24.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_241.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_242.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_244.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_245.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_246.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_247.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_249.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_25.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_253.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_254.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_26.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_262.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_263.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_264.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_265.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_266.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_267.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_268.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_269.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_27.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_270.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_271.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_272.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_28.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_29.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_3.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_30.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_31.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_32.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_33.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_34.jpg',
+     'datasets/oxfordpet/images\\Persian_1.jpg',
+     'datasets/oxfordpet/images\\Persian_10.jpg',
+     'datasets/oxfordpet/images\\Persian_100.jpg',
+     'datasets/oxfordpet/images\\Persian_101.jpg',
+     'datasets/oxfordpet/images\\Persian_102.jpg',
+     'datasets/oxfordpet/images\\Persian_103.jpg',
+     'datasets/oxfordpet/images\\Persian_104.jpg',
+     'datasets/oxfordpet/images\\Persian_105.jpg',
+     'datasets/oxfordpet/images\\Persian_106.jpg',
+     'datasets/oxfordpet/images\\Persian_107.jpg',
+     'datasets/oxfordpet/images\\Persian_108.jpg',
+     'datasets/oxfordpet/images\\Persian_11.jpg',
+     'datasets/oxfordpet/images\\Persian_111.jpg',
+     'datasets/oxfordpet/images\\Persian_112.jpg',
+     'datasets/oxfordpet/images\\Persian_114.jpg',
+     'datasets/oxfordpet/images\\Persian_115.jpg',
+     'datasets/oxfordpet/images\\Persian_116.jpg',
+     'datasets/oxfordpet/images\\Persian_117.jpg',
+     'datasets/oxfordpet/images\\Persian_118.jpg',
+     'datasets/oxfordpet/images\\Persian_12.jpg',
+     ...]
+
+
+
+
+```python
+test_path_list
+```
+
+
+
+
+    ['datasets/oxfordpet/images\\Abyssinian_43.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_44.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_45.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_46.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_47.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_48.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_49.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_50.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_51.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_52.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_54.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_55.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_56.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_57.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_58.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_6.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_60.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_61.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_62.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_63.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_65.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_66.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_67.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_68.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_69.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_7.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_70.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_71.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_72.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_73.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_74.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_75.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_76.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_77.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_78.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_79.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_8.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_80.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_81.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_82.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_83.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_84.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_85.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_86.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_87.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_88.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_89.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_9.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_90.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_91.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_92.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_93.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_94.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_95.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_96.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_97.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_98.jpg',
+     'datasets/oxfordpet/images\\Abyssinian_99.jpg',
+     'datasets/oxfordpet/images\\Bengal_45.jpg',
+     'datasets/oxfordpet/images\\Bengal_46.jpg',
+     'datasets/oxfordpet/images\\Bengal_47.jpg',
+     'datasets/oxfordpet/images\\Bengal_48.jpg',
+     'datasets/oxfordpet/images\\Bengal_49.jpg',
+     'datasets/oxfordpet/images\\Bengal_5.jpg',
+     'datasets/oxfordpet/images\\Bengal_50.jpg',
+     'datasets/oxfordpet/images\\Bengal_51.jpg',
+     'datasets/oxfordpet/images\\Bengal_52.jpg',
+     'datasets/oxfordpet/images\\Bengal_53.jpg',
+     'datasets/oxfordpet/images\\Bengal_54.jpg',
+     'datasets/oxfordpet/images\\Bengal_55.jpg',
+     'datasets/oxfordpet/images\\Bengal_56.jpg',
+     'datasets/oxfordpet/images\\Bengal_57.jpg',
+     'datasets/oxfordpet/images\\Bengal_58.jpg',
+     'datasets/oxfordpet/images\\Bengal_59.jpg',
+     'datasets/oxfordpet/images\\Bengal_6.jpg',
+     'datasets/oxfordpet/images\\Bengal_60.jpg',
+     'datasets/oxfordpet/images\\Bengal_61.jpg',
+     'datasets/oxfordpet/images\\Bengal_62.jpg',
+     'datasets/oxfordpet/images\\Bengal_63.jpg',
+     'datasets/oxfordpet/images\\Bengal_64.jpg',
+     'datasets/oxfordpet/images\\Bengal_65.jpg',
+     'datasets/oxfordpet/images\\Bengal_66.jpg',
+     'datasets/oxfordpet/images\\Bengal_67.jpg',
+     'datasets/oxfordpet/images\\Bengal_68.jpg',
+     'datasets/oxfordpet/images\\Bengal_69.jpg',
+     'datasets/oxfordpet/images\\Bengal_7.jpg',
+     'datasets/oxfordpet/images\\Bengal_70.jpg',
+     'datasets/oxfordpet/images\\Bengal_71.jpg',
+     'datasets/oxfordpet/images\\Bengal_72.jpg',
+     'datasets/oxfordpet/images\\Bengal_73.jpg',
+     'datasets/oxfordpet/images\\Bengal_74.jpg',
+     'datasets/oxfordpet/images\\Bengal_75.jpg',
+     'datasets/oxfordpet/images\\Bengal_76.jpg',
+     'datasets/oxfordpet/images\\Bengal_77.jpg',
+     'datasets/oxfordpet/images\\Bengal_78.jpg',
+     'datasets/oxfordpet/images\\Bengal_79.jpg',
+     'datasets/oxfordpet/images\\Bengal_8.jpg',
+     'datasets/oxfordpet/images\\Bengal_80.jpg',
+     'datasets/oxfordpet/images\\Bengal_81.jpg',
+     'datasets/oxfordpet/images\\Bengal_82.jpg',
+     'datasets/oxfordpet/images\\Bengal_83.jpg',
+     'datasets/oxfordpet/images\\Bengal_84.jpg',
+     'datasets/oxfordpet/images\\Bengal_85.jpg',
+     'datasets/oxfordpet/images\\Bengal_86.jpg',
+     'datasets/oxfordpet/images\\Bengal_87.jpg',
+     'datasets/oxfordpet/images\\Bengal_88.jpg',
+     'datasets/oxfordpet/images\\Bengal_89.jpg',
+     'datasets/oxfordpet/images\\Bengal_9.jpg',
+     'datasets/oxfordpet/images\\Bengal_90.jpg',
+     'datasets/oxfordpet/images\\Bengal_91.jpg',
+     'datasets/oxfordpet/images\\Bengal_92.jpg',
+     'datasets/oxfordpet/images\\Bengal_93.jpg',
+     'datasets/oxfordpet/images\\Bengal_94.jpg',
+     'datasets/oxfordpet/images\\Bengal_95.jpg',
+     'datasets/oxfordpet/images\\Bengal_96.jpg',
+     'datasets/oxfordpet/images\\Bengal_97.jpg',
+     'datasets/oxfordpet/images\\Bengal_98.jpg',
+     'datasets/oxfordpet/images\\Bengal_99.jpg',
+     'datasets/oxfordpet/images\\Birman_45.jpg',
+     'datasets/oxfordpet/images\\Birman_46.jpg',
+     'datasets/oxfordpet/images\\Birman_47.jpg',
+     'datasets/oxfordpet/images\\Birman_48.jpg',
+     'datasets/oxfordpet/images\\Birman_49.jpg',
+     'datasets/oxfordpet/images\\Birman_5.jpg',
+     'datasets/oxfordpet/images\\Birman_50.jpg',
+     'datasets/oxfordpet/images\\Birman_51.jpg',
+     'datasets/oxfordpet/images\\Birman_52.jpg',
+     'datasets/oxfordpet/images\\Birman_53.jpg',
+     'datasets/oxfordpet/images\\Birman_54.jpg',
+     'datasets/oxfordpet/images\\Birman_55.jpg',
+     'datasets/oxfordpet/images\\Birman_56.jpg',
+     'datasets/oxfordpet/images\\Birman_57.jpg',
+     'datasets/oxfordpet/images\\Birman_58.jpg',
+     'datasets/oxfordpet/images\\Birman_59.jpg',
+     'datasets/oxfordpet/images\\Birman_6.jpg',
+     'datasets/oxfordpet/images\\Birman_60.jpg',
+     'datasets/oxfordpet/images\\Birman_61.jpg',
+     'datasets/oxfordpet/images\\Birman_62.jpg',
+     'datasets/oxfordpet/images\\Birman_63.jpg',
+     'datasets/oxfordpet/images\\Birman_64.jpg',
+     'datasets/oxfordpet/images\\Birman_65.jpg',
+     'datasets/oxfordpet/images\\Birman_66.jpg',
+     'datasets/oxfordpet/images\\Birman_67.jpg',
+     'datasets/oxfordpet/images\\Birman_68.jpg',
+     'datasets/oxfordpet/images\\Birman_69.jpg',
+     'datasets/oxfordpet/images\\Birman_7.jpg',
+     'datasets/oxfordpet/images\\Birman_70.jpg',
+     'datasets/oxfordpet/images\\Birman_71.jpg',
+     'datasets/oxfordpet/images\\Birman_72.jpg',
+     'datasets/oxfordpet/images\\Birman_73.jpg',
+     'datasets/oxfordpet/images\\Birman_74.jpg',
+     'datasets/oxfordpet/images\\Birman_75.jpg',
+     'datasets/oxfordpet/images\\Birman_76.jpg',
+     'datasets/oxfordpet/images\\Birman_77.jpg',
+     'datasets/oxfordpet/images\\Birman_78.jpg',
+     'datasets/oxfordpet/images\\Birman_79.jpg',
+     'datasets/oxfordpet/images\\Birman_8.jpg',
+     'datasets/oxfordpet/images\\Birman_80.jpg',
+     'datasets/oxfordpet/images\\Birman_81.jpg',
+     'datasets/oxfordpet/images\\Birman_82.jpg',
+     'datasets/oxfordpet/images\\Birman_83.jpg',
+     'datasets/oxfordpet/images\\Birman_84.jpg',
+     'datasets/oxfordpet/images\\Birman_85.jpg',
+     'datasets/oxfordpet/images\\Birman_86.jpg',
+     'datasets/oxfordpet/images\\Birman_87.jpg',
+     'datasets/oxfordpet/images\\Birman_88.jpg',
+     'datasets/oxfordpet/images\\Birman_89.jpg',
+     'datasets/oxfordpet/images\\Birman_9.jpg',
+     'datasets/oxfordpet/images\\Birman_90.jpg',
+     'datasets/oxfordpet/images\\Birman_91.jpg',
+     'datasets/oxfordpet/images\\Birman_92.jpg',
+     'datasets/oxfordpet/images\\Birman_93.jpg',
+     'datasets/oxfordpet/images\\Birman_94.jpg',
+     'datasets/oxfordpet/images\\Birman_95.jpg',
+     'datasets/oxfordpet/images\\Birman_96.jpg',
+     'datasets/oxfordpet/images\\Birman_97.jpg',
+     'datasets/oxfordpet/images\\Birman_98.jpg',
+     'datasets/oxfordpet/images\\Birman_99.jpg',
+     'datasets/oxfordpet/images\\Bombay_43.jpg',
+     'datasets/oxfordpet/images\\Bombay_45.jpg',
+     'datasets/oxfordpet/images\\Bombay_46.jpg',
+     'datasets/oxfordpet/images\\Bombay_47.jpg',
+     'datasets/oxfordpet/images\\Bombay_48.jpg',
+     'datasets/oxfordpet/images\\Bombay_49.jpg',
+     'datasets/oxfordpet/images\\Bombay_5.jpg',
+     'datasets/oxfordpet/images\\Bombay_50.jpg',
+     'datasets/oxfordpet/images\\Bombay_52.jpg',
+     'datasets/oxfordpet/images\\Bombay_53.jpg',
+     'datasets/oxfordpet/images\\Bombay_54.jpg',
+     'datasets/oxfordpet/images\\Bombay_55.jpg',
+     'datasets/oxfordpet/images\\Bombay_56.jpg',
+     'datasets/oxfordpet/images\\Bombay_57.jpg',
+     'datasets/oxfordpet/images\\Bombay_58.jpg',
+     'datasets/oxfordpet/images\\Bombay_59.jpg',
+     'datasets/oxfordpet/images\\Bombay_6.jpg',
+     'datasets/oxfordpet/images\\Bombay_60.jpg',
+     'datasets/oxfordpet/images\\Bombay_61.jpg',
+     'datasets/oxfordpet/images\\Bombay_62.jpg',
+     'datasets/oxfordpet/images\\Bombay_63.jpg',
+     'datasets/oxfordpet/images\\Bombay_64.jpg',
+     'datasets/oxfordpet/images\\Bombay_65.jpg',
+     'datasets/oxfordpet/images\\Bombay_66.jpg',
+     'datasets/oxfordpet/images\\Bombay_67.jpg',
+     'datasets/oxfordpet/images\\Bombay_68.jpg',
+     'datasets/oxfordpet/images\\Bombay_69.jpg',
+     'datasets/oxfordpet/images\\Bombay_7.jpg',
+     'datasets/oxfordpet/images\\Bombay_70.jpg',
+     'datasets/oxfordpet/images\\Bombay_71.jpg',
+     'datasets/oxfordpet/images\\Bombay_72.jpg',
+     'datasets/oxfordpet/images\\Bombay_73.jpg',
+     'datasets/oxfordpet/images\\Bombay_74.jpg',
+     'datasets/oxfordpet/images\\Bombay_75.jpg',
+     'datasets/oxfordpet/images\\Bombay_76.jpg',
+     'datasets/oxfordpet/images\\Bombay_77.jpg',
+     'datasets/oxfordpet/images\\Bombay_78.jpg',
+     'datasets/oxfordpet/images\\Bombay_79.jpg',
+     'datasets/oxfordpet/images\\Bombay_8.jpg',
+     'datasets/oxfordpet/images\\Bombay_80.jpg',
+     'datasets/oxfordpet/images\\Bombay_81.jpg',
+     'datasets/oxfordpet/images\\Bombay_82.jpg',
+     'datasets/oxfordpet/images\\Bombay_83.jpg',
+     'datasets/oxfordpet/images\\Bombay_84.jpg',
+     'datasets/oxfordpet/images\\Bombay_85.jpg',
+     'datasets/oxfordpet/images\\Bombay_86.jpg',
+     'datasets/oxfordpet/images\\Bombay_87.jpg',
+     'datasets/oxfordpet/images\\Bombay_88.jpg',
+     'datasets/oxfordpet/images\\Bombay_89.jpg',
+     'datasets/oxfordpet/images\\Bombay_9.jpg',
+     'datasets/oxfordpet/images\\Bombay_90.jpg',
+     'datasets/oxfordpet/images\\Bombay_91.jpg',
+     'datasets/oxfordpet/images\\Bombay_92.jpg',
+     'datasets/oxfordpet/images\\Bombay_93.jpg',
+     'datasets/oxfordpet/images\\Bombay_94.jpg',
+     'datasets/oxfordpet/images\\Bombay_95.jpg',
+     'datasets/oxfordpet/images\\Bombay_96.jpg',
+     'datasets/oxfordpet/images\\Bombay_97.jpg',
+     'datasets/oxfordpet/images\\Bombay_98.jpg',
+     'datasets/oxfordpet/images\\Bombay_99.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_38.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_39.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_40.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_41.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_42.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_43.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_44.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_45.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_46.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_47.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_48.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_49.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_50.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_51.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_52.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_53.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_54.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_55.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_56.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_57.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_58.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_59.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_6.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_60.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_61.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_62.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_63.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_64.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_65.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_66.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_67.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_68.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_70.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_71.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_72.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_74.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_75.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_77.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_78.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_79.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_8.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_82.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_83.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_84.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_85.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_86.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_87.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_88.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_89.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_9.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_90.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_91.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_92.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_93.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_94.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_95.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_96.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_97.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_98.jpg',
+     'datasets/oxfordpet/images\\British_Shorthair_99.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_48.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_49.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_5.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_50.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_51.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_52.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_53.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_54.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_56.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_57.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_58.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_59.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_6.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_60.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_61.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_62.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_63.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_67.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_68.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_69.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_7.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_70.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_71.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_73.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_74.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_75.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_76.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_77.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_78.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_79.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_8.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_80.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_81.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_82.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_83.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_84.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_85.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_86.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_87.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_88.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_89.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_9.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_90.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_91.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_92.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_93.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_94.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_95.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_96.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_97.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_98.jpg',
+     'datasets/oxfordpet/images\\Egyptian_Mau_99.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_35.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_36.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_37.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_38.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_39.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_41.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_42.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_43.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_44.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_46.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_47.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_48.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_49.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_5.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_50.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_51.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_52.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_53.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_54.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_55.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_56.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_57.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_58.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_6.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_60.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_61.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_63.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_64.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_66.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_67.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_68.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_69.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_7.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_70.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_71.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_72.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_75.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_76.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_77.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_78.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_79.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_8.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_80.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_81.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_82.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_83.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_84.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_85.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_87.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_89.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_9.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_91.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_92.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_93.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_94.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_95.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_96.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_97.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_98.jpg',
+     'datasets/oxfordpet/images\\Maine_Coon_99.jpg',
+     'datasets/oxfordpet/images\\Persian_39.jpg',
+     'datasets/oxfordpet/images\\Persian_4.jpg',
+     'datasets/oxfordpet/images\\Persian_40.jpg',
+     'datasets/oxfordpet/images\\Persian_41.jpg',
+     'datasets/oxfordpet/images\\Persian_42.jpg',
+     'datasets/oxfordpet/images\\Persian_43.jpg',
+     'datasets/oxfordpet/images\\Persian_44.jpg',
+     'datasets/oxfordpet/images\\Persian_45.jpg',
+     'datasets/oxfordpet/images\\Persian_46.jpg',
+     'datasets/oxfordpet/images\\Persian_47.jpg',
+     'datasets/oxfordpet/images\\Persian_49.jpg',
+     'datasets/oxfordpet/images\\Persian_5.jpg',
+     'datasets/oxfordpet/images\\Persian_51.jpg',
+     'datasets/oxfordpet/images\\Persian_52.jpg',
+     'datasets/oxfordpet/images\\Persian_53.jpg',
+     'datasets/oxfordpet/images\\Persian_54.jpg',
+     'datasets/oxfordpet/images\\Persian_55.jpg',
+     'datasets/oxfordpet/images\\Persian_56.jpg',
+     'datasets/oxfordpet/images\\Persian_58.jpg',
+     'datasets/oxfordpet/images\\Persian_59.jpg',
+     'datasets/oxfordpet/images\\Persian_6.jpg',
+     'datasets/oxfordpet/images\\Persian_60.jpg',
+     'datasets/oxfordpet/images\\Persian_61.jpg',
+     'datasets/oxfordpet/images\\Persian_62.jpg',
+     'datasets/oxfordpet/images\\Persian_63.jpg',
+     'datasets/oxfordpet/images\\Persian_64.jpg',
+     'datasets/oxfordpet/images\\Persian_65.jpg',
+     'datasets/oxfordpet/images\\Persian_66.jpg',
+     'datasets/oxfordpet/images\\Persian_67.jpg',
+     'datasets/oxfordpet/images\\Persian_68.jpg',
+     'datasets/oxfordpet/images\\Persian_69.jpg',
+     'datasets/oxfordpet/images\\Persian_7.jpg',
+     'datasets/oxfordpet/images\\Persian_70.jpg',
+     'datasets/oxfordpet/images\\Persian_71.jpg',
+     'datasets/oxfordpet/images\\Persian_72.jpg',
+     'datasets/oxfordpet/images\\Persian_74.jpg',
+     'datasets/oxfordpet/images\\Persian_75.jpg',
+     'datasets/oxfordpet/images\\Persian_76.jpg',
+     'datasets/oxfordpet/images\\Persian_77.jpg',
+     'datasets/oxfordpet/images\\Persian_78.jpg',
+     'datasets/oxfordpet/images\\Persian_79.jpg',
+     'datasets/oxfordpet/images\\Persian_8.jpg',
+     'datasets/oxfordpet/images\\Persian_80.jpg',
+     'datasets/oxfordpet/images\\Persian_81.jpg',
+     'datasets/oxfordpet/images\\Persian_82.jpg',
+     'datasets/oxfordpet/images\\Persian_83.jpg',
+     'datasets/oxfordpet/images\\Persian_84.jpg',
+     'datasets/oxfordpet/images\\Persian_85.jpg',
+     'datasets/oxfordpet/images\\Persian_86.jpg',
+     'datasets/oxfordpet/images\\Persian_87.jpg',
+     'datasets/oxfordpet/images\\Persian_88.jpg',
+     'datasets/oxfordpet/images\\Persian_89.jpg',
+     'datasets/oxfordpet/images\\Persian_9.jpg',
+     'datasets/oxfordpet/images\\Persian_90.jpg',
+     'datasets/oxfordpet/images\\Persian_91.jpg',
+     'datasets/oxfordpet/images\\Persian_94.jpg',
+     'datasets/oxfordpet/images\\Persian_95.jpg',
+     'datasets/oxfordpet/images\\Persian_97.jpg',
+     'datasets/oxfordpet/images\\Persian_98.jpg',
+     'datasets/oxfordpet/images\\Persian_99.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_37.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_4.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_40.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_41.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_42.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_43.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_44.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_45.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_47.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_48.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_49.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_5.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_51.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_52.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_53.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_54.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_56.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_57.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_58.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_59.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_6.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_60.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_62.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_63.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_64.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_67.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_68.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_69.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_7.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_71.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_72.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_73.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_74.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_75.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_76.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_77.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_78.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_79.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_8.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_80.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_81.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_82.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_83.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_84.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_85.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_86.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_87.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_88.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_89.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_9.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_90.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_91.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_92.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_93.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_94.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_95.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_96.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_97.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_98.jpg',
+     'datasets/oxfordpet/images\\Ragdoll_99.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_34.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_35.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_36.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_38.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_40.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_41.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_43.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_44.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_45.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_47.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_48.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_49.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_50.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_51.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_53.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_54.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_55.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_57.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_59.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_60.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_61.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_62.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_63.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_64.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_66.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_67.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_68.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_69.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_70.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_71.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_72.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_73.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_74.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_75.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_76.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_77.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_78.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_79.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_8.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_80.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_81.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_82.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_83.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_84.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_85.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_86.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_87.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_88.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_89.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_9.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_90.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_91.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_92.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_93.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_94.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_95.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_96.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_97.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_98.jpg',
+     'datasets/oxfordpet/images\\Russian_Blue_99.jpg',
+     'datasets/oxfordpet/images\\Siamese_40.jpg',
+     'datasets/oxfordpet/images\\Siamese_41.jpg',
+     'datasets/oxfordpet/images\\Siamese_42.jpg',
+     'datasets/oxfordpet/images\\Siamese_43.jpg',
+     'datasets/oxfordpet/images\\Siamese_44.jpg',
+     'datasets/oxfordpet/images\\Siamese_46.jpg',
+     'datasets/oxfordpet/images\\Siamese_47.jpg',
+     'datasets/oxfordpet/images\\Siamese_48.jpg',
+     'datasets/oxfordpet/images\\Siamese_49.jpg',
+     'datasets/oxfordpet/images\\Siamese_5.jpg',
+     'datasets/oxfordpet/images\\Siamese_50.jpg',
+     'datasets/oxfordpet/images\\Siamese_51.jpg',
+     'datasets/oxfordpet/images\\Siamese_52.jpg',
+     'datasets/oxfordpet/images\\Siamese_53.jpg',
+     'datasets/oxfordpet/images\\Siamese_54.jpg',
+     'datasets/oxfordpet/images\\Siamese_55.jpg',
+     'datasets/oxfordpet/images\\Siamese_56.jpg',
+     'datasets/oxfordpet/images\\Siamese_57.jpg',
+     'datasets/oxfordpet/images\\Siamese_58.jpg',
+     'datasets/oxfordpet/images\\Siamese_59.jpg',
+     'datasets/oxfordpet/images\\Siamese_6.jpg',
+     'datasets/oxfordpet/images\\Siamese_60.jpg',
+     'datasets/oxfordpet/images\\Siamese_61.jpg',
+     'datasets/oxfordpet/images\\Siamese_63.jpg',
+     'datasets/oxfordpet/images\\Siamese_64.jpg',
+     'datasets/oxfordpet/images\\Siamese_65.jpg',
+     'datasets/oxfordpet/images\\Siamese_66.jpg',
+     'datasets/oxfordpet/images\\Siamese_67.jpg',
+     'datasets/oxfordpet/images\\Siamese_69.jpg',
+     'datasets/oxfordpet/images\\Siamese_70.jpg',
+     'datasets/oxfordpet/images\\Siamese_71.jpg',
+     'datasets/oxfordpet/images\\Siamese_72.jpg',
+     'datasets/oxfordpet/images\\Siamese_73.jpg',
+     'datasets/oxfordpet/images\\Siamese_74.jpg',
+     'datasets/oxfordpet/images\\Siamese_75.jpg',
+     'datasets/oxfordpet/images\\Siamese_76.jpg',
+     'datasets/oxfordpet/images\\Siamese_77.jpg',
+     'datasets/oxfordpet/images\\Siamese_78.jpg',
+     'datasets/oxfordpet/images\\Siamese_79.jpg',
+     'datasets/oxfordpet/images\\Siamese_80.jpg',
+     'datasets/oxfordpet/images\\Siamese_81.jpg',
+     'datasets/oxfordpet/images\\Siamese_82.jpg',
+     'datasets/oxfordpet/images\\Siamese_83.jpg',
+     'datasets/oxfordpet/images\\Siamese_84.jpg',
+     'datasets/oxfordpet/images\\Siamese_85.jpg',
+     'datasets/oxfordpet/images\\Siamese_86.jpg',
+     'datasets/oxfordpet/images\\Siamese_87.jpg',
+     'datasets/oxfordpet/images\\Siamese_88.jpg',
+     'datasets/oxfordpet/images\\Siamese_89.jpg',
+     'datasets/oxfordpet/images\\Siamese_9.jpg',
+     'datasets/oxfordpet/images\\Siamese_90.jpg',
+     'datasets/oxfordpet/images\\Siamese_91.jpg',
+     'datasets/oxfordpet/images\\Siamese_92.jpg',
+     'datasets/oxfordpet/images\\Siamese_93.jpg',
+     'datasets/oxfordpet/images\\Siamese_94.jpg',
+     'datasets/oxfordpet/images\\Siamese_95.jpg',
+     'datasets/oxfordpet/images\\Siamese_96.jpg',
+     'datasets/oxfordpet/images\\Siamese_97.jpg',
+     'datasets/oxfordpet/images\\Siamese_98.jpg',
+     'datasets/oxfordpet/images\\Siamese_99.jpg',
+     'datasets/oxfordpet/images\\Sphynx_30.jpg',
+     'datasets/oxfordpet/images\\Sphynx_31.jpg',
+     'datasets/oxfordpet/images\\Sphynx_33.jpg',
+     'datasets/oxfordpet/images\\Sphynx_34.jpg',
+     'datasets/oxfordpet/images\\Sphynx_36.jpg',
+     'datasets/oxfordpet/images\\Sphynx_37.jpg',
+     'datasets/oxfordpet/images\\Sphynx_38.jpg',
+     'datasets/oxfordpet/images\\Sphynx_39.jpg',
+     'datasets/oxfordpet/images\\Sphynx_4.jpg',
+     'datasets/oxfordpet/images\\Sphynx_40.jpg',
+     'datasets/oxfordpet/images\\Sphynx_41.jpg',
+     'datasets/oxfordpet/images\\Sphynx_42.jpg',
+     'datasets/oxfordpet/images\\Sphynx_43.jpg',
+     'datasets/oxfordpet/images\\Sphynx_44.jpg',
+     'datasets/oxfordpet/images\\Sphynx_45.jpg',
+     'datasets/oxfordpet/images\\Sphynx_46.jpg',
+     'datasets/oxfordpet/images\\Sphynx_47.jpg',
+     'datasets/oxfordpet/images\\Sphynx_48.jpg',
+     'datasets/oxfordpet/images\\Sphynx_49.jpg',
+     'datasets/oxfordpet/images\\Sphynx_5.jpg',
+     'datasets/oxfordpet/images\\Sphynx_51.jpg',
+     'datasets/oxfordpet/images\\Sphynx_53.jpg',
+     'datasets/oxfordpet/images\\Sphynx_54.jpg',
+     'datasets/oxfordpet/images\\Sphynx_55.jpg',
+     'datasets/oxfordpet/images\\Sphynx_56.jpg',
+     'datasets/oxfordpet/images\\Sphynx_57.jpg',
+     'datasets/oxfordpet/images\\Sphynx_58.jpg',
+     'datasets/oxfordpet/images\\Sphynx_59.jpg',
+     'datasets/oxfordpet/images\\Sphynx_61.jpg',
+     'datasets/oxfordpet/images\\Sphynx_65.jpg',
+     'datasets/oxfordpet/images\\Sphynx_66.jpg',
+     'datasets/oxfordpet/images\\Sphynx_67.jpg',
+     'datasets/oxfordpet/images\\Sphynx_70.jpg',
+     'datasets/oxfordpet/images\\Sphynx_71.jpg',
+     'datasets/oxfordpet/images\\Sphynx_72.jpg',
+     'datasets/oxfordpet/images\\Sphynx_73.jpg',
+     'datasets/oxfordpet/images\\Sphynx_74.jpg',
+     'datasets/oxfordpet/images\\Sphynx_75.jpg',
+     'datasets/oxfordpet/images\\Sphynx_76.jpg',
+     'datasets/oxfordpet/images\\Sphynx_77.jpg',
+     'datasets/oxfordpet/images\\Sphynx_78.jpg',
+     'datasets/oxfordpet/images\\Sphynx_8.jpg',
+     'datasets/oxfordpet/images\\Sphynx_80.jpg',
+     'datasets/oxfordpet/images\\Sphynx_82.jpg',
+     'datasets/oxfordpet/images\\Sphynx_83.jpg',
+     'datasets/oxfordpet/images\\Sphynx_84.jpg',
+     'datasets/oxfordpet/images\\Sphynx_85.jpg',
+     'datasets/oxfordpet/images\\Sphynx_87.jpg',
+     'datasets/oxfordpet/images\\Sphynx_88.jpg',
+     'datasets/oxfordpet/images\\Sphynx_89.jpg',
+     'datasets/oxfordpet/images\\Sphynx_9.jpg',
+     'datasets/oxfordpet/images\\Sphynx_90.jpg',
+     'datasets/oxfordpet/images\\Sphynx_91.jpg',
+     'datasets/oxfordpet/images\\Sphynx_92.jpg',
+     'datasets/oxfordpet/images\\Sphynx_93.jpg',
+     'datasets/oxfordpet/images\\Sphynx_94.jpg',
+     'datasets/oxfordpet/images\\Sphynx_95.jpg',
+     'datasets/oxfordpet/images\\Sphynx_96.jpg',
+     'datasets/oxfordpet/images\\Sphynx_98.jpg',
+     'datasets/oxfordpet/images\\Sphynx_99.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_44.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_45.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_46.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_47.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_48.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_49.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_5.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_50.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_51.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_52.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_53.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_54.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_55.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_56.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_57.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_58.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_59.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_6.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_60.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_61.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_62.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_63.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_64.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_65.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_66.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_67.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_68.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_69.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_7.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_70.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_71.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_72.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_73.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_74.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_75.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_76.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_77.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_78.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_79.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_8.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_80.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_81.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_82.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_83.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_84.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_85.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_86.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_87.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_89.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_9.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_90.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_91.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_92.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_93.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_94.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_95.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_96.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_97.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_98.jpg',
+     'datasets/oxfordpet/images\\american_bulldog_99.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_43.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_44.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_45.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_46.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_47.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_48.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_49.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_5.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_50.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_51.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_52.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_53.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_54.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_55.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_56.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_57.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_58.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_59.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_6.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_60.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_61.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_62.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_63.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_64.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_65.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_66.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_67.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_68.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_69.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_7.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_70.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_71.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_72.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_73.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_74.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_75.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_76.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_77.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_78.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_79.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_8.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_80.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_81.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_82.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_84.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_86.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_87.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_88.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_89.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_9.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_90.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_91.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_92.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_93.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_94.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_95.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_96.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_97.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_98.jpg',
+     'datasets/oxfordpet/images\\american_pit_bull_terrier_99.jpg',
+     'datasets/oxfordpet/images\\basset_hound_45.jpg',
+     'datasets/oxfordpet/images\\basset_hound_46.jpg',
+     'datasets/oxfordpet/images\\basset_hound_47.jpg',
+     'datasets/oxfordpet/images\\basset_hound_48.jpg',
+     'datasets/oxfordpet/images\\basset_hound_49.jpg',
+     'datasets/oxfordpet/images\\basset_hound_5.jpg',
+     'datasets/oxfordpet/images\\basset_hound_50.jpg',
+     'datasets/oxfordpet/images\\basset_hound_51.jpg',
+     'datasets/oxfordpet/images\\basset_hound_52.jpg',
+     'datasets/oxfordpet/images\\basset_hound_53.jpg',
+     'datasets/oxfordpet/images\\basset_hound_54.jpg',
+     'datasets/oxfordpet/images\\basset_hound_55.jpg',
+     'datasets/oxfordpet/images\\basset_hound_56.jpg',
+     'datasets/oxfordpet/images\\basset_hound_57.jpg',
+     'datasets/oxfordpet/images\\basset_hound_58.jpg',
+     'datasets/oxfordpet/images\\basset_hound_59.jpg',
+     'datasets/oxfordpet/images\\basset_hound_6.jpg',
+     'datasets/oxfordpet/images\\basset_hound_60.jpg',
+     'datasets/oxfordpet/images\\basset_hound_61.jpg',
+     'datasets/oxfordpet/images\\basset_hound_62.jpg',
+     'datasets/oxfordpet/images\\basset_hound_63.jpg',
+     'datasets/oxfordpet/images\\basset_hound_64.jpg',
+     'datasets/oxfordpet/images\\basset_hound_65.jpg',
+     'datasets/oxfordpet/images\\basset_hound_66.jpg',
+     'datasets/oxfordpet/images\\basset_hound_67.jpg',
+     'datasets/oxfordpet/images\\basset_hound_68.jpg',
+     'datasets/oxfordpet/images\\basset_hound_69.jpg',
+     'datasets/oxfordpet/images\\basset_hound_7.jpg',
+     'datasets/oxfordpet/images\\basset_hound_70.jpg',
+     'datasets/oxfordpet/images\\basset_hound_71.jpg',
+     'datasets/oxfordpet/images\\basset_hound_72.jpg',
+     'datasets/oxfordpet/images\\basset_hound_73.jpg',
+     'datasets/oxfordpet/images\\basset_hound_74.jpg',
+     'datasets/oxfordpet/images\\basset_hound_75.jpg',
+     'datasets/oxfordpet/images\\basset_hound_76.jpg',
+     'datasets/oxfordpet/images\\basset_hound_77.jpg',
+     'datasets/oxfordpet/images\\basset_hound_78.jpg',
+     'datasets/oxfordpet/images\\basset_hound_79.jpg',
+     'datasets/oxfordpet/images\\basset_hound_8.jpg',
+     'datasets/oxfordpet/images\\basset_hound_80.jpg',
+     'datasets/oxfordpet/images\\basset_hound_81.jpg',
+     'datasets/oxfordpet/images\\basset_hound_82.jpg',
+     'datasets/oxfordpet/images\\basset_hound_83.jpg',
+     'datasets/oxfordpet/images\\basset_hound_84.jpg',
+     'datasets/oxfordpet/images\\basset_hound_85.jpg',
+     'datasets/oxfordpet/images\\basset_hound_86.jpg',
+     'datasets/oxfordpet/images\\basset_hound_87.jpg',
+     'datasets/oxfordpet/images\\basset_hound_88.jpg',
+     'datasets/oxfordpet/images\\basset_hound_89.jpg',
+     'datasets/oxfordpet/images\\basset_hound_9.jpg',
+     'datasets/oxfordpet/images\\basset_hound_90.jpg',
+     'datasets/oxfordpet/images\\basset_hound_91.jpg',
+     'datasets/oxfordpet/images\\basset_hound_92.jpg',
+     'datasets/oxfordpet/images\\basset_hound_93.jpg',
+     'datasets/oxfordpet/images\\basset_hound_94.jpg',
+     'datasets/oxfordpet/images\\basset_hound_95.jpg',
+     'datasets/oxfordpet/images\\basset_hound_96.jpg',
+     'datasets/oxfordpet/images\\basset_hound_97.jpg',
+     'datasets/oxfordpet/images\\basset_hound_98.jpg',
+     'datasets/oxfordpet/images\\basset_hound_99.jpg',
+     'datasets/oxfordpet/images\\beagle_45.jpg',
+     'datasets/oxfordpet/images\\beagle_46.jpg',
+     'datasets/oxfordpet/images\\beagle_47.jpg',
+     'datasets/oxfordpet/images\\beagle_48.jpg',
+     'datasets/oxfordpet/images\\beagle_49.jpg',
+     'datasets/oxfordpet/images\\beagle_5.jpg',
+     'datasets/oxfordpet/images\\beagle_50.jpg',
+     'datasets/oxfordpet/images\\beagle_51.jpg',
+     'datasets/oxfordpet/images\\beagle_52.jpg',
+     'datasets/oxfordpet/images\\beagle_53.jpg',
+     'datasets/oxfordpet/images\\beagle_54.jpg',
+     'datasets/oxfordpet/images\\beagle_55.jpg',
+     'datasets/oxfordpet/images\\beagle_56.jpg',
+     'datasets/oxfordpet/images\\beagle_57.jpg',
+     'datasets/oxfordpet/images\\beagle_58.jpg',
+     'datasets/oxfordpet/images\\beagle_59.jpg',
+     'datasets/oxfordpet/images\\beagle_6.jpg',
+     'datasets/oxfordpet/images\\beagle_60.jpg',
+     'datasets/oxfordpet/images\\beagle_61.jpg',
+     'datasets/oxfordpet/images\\beagle_62.jpg',
+     'datasets/oxfordpet/images\\beagle_63.jpg',
+     'datasets/oxfordpet/images\\beagle_64.jpg',
+     'datasets/oxfordpet/images\\beagle_65.jpg',
+     'datasets/oxfordpet/images\\beagle_66.jpg',
+     'datasets/oxfordpet/images\\beagle_67.jpg',
+     'datasets/oxfordpet/images\\beagle_68.jpg',
+     'datasets/oxfordpet/images\\beagle_69.jpg',
+     'datasets/oxfordpet/images\\beagle_7.jpg',
+     'datasets/oxfordpet/images\\beagle_70.jpg',
+     'datasets/oxfordpet/images\\beagle_71.jpg',
+     'datasets/oxfordpet/images\\beagle_72.jpg',
+     'datasets/oxfordpet/images\\beagle_73.jpg',
+     'datasets/oxfordpet/images\\beagle_74.jpg',
+     'datasets/oxfordpet/images\\beagle_75.jpg',
+     'datasets/oxfordpet/images\\beagle_76.jpg',
+     'datasets/oxfordpet/images\\beagle_77.jpg',
+     'datasets/oxfordpet/images\\beagle_78.jpg',
+     'datasets/oxfordpet/images\\beagle_79.jpg',
+     'datasets/oxfordpet/images\\beagle_8.jpg',
+     'datasets/oxfordpet/images\\beagle_80.jpg',
+     'datasets/oxfordpet/images\\beagle_81.jpg',
+     'datasets/oxfordpet/images\\beagle_82.jpg',
+     'datasets/oxfordpet/images\\beagle_83.jpg',
+     'datasets/oxfordpet/images\\beagle_84.jpg',
+     'datasets/oxfordpet/images\\beagle_85.jpg',
+     'datasets/oxfordpet/images\\beagle_86.jpg',
+     'datasets/oxfordpet/images\\beagle_87.jpg',
+     'datasets/oxfordpet/images\\beagle_88.jpg',
+     'datasets/oxfordpet/images\\beagle_89.jpg',
+     'datasets/oxfordpet/images\\beagle_9.jpg',
+     'datasets/oxfordpet/images\\beagle_90.jpg',
+     'datasets/oxfordpet/images\\beagle_91.jpg',
+     'datasets/oxfordpet/images\\beagle_92.jpg',
+     'datasets/oxfordpet/images\\beagle_93.jpg',
+     'datasets/oxfordpet/images\\beagle_94.jpg',
+     'datasets/oxfordpet/images\\beagle_95.jpg',
+     'datasets/oxfordpet/images\\beagle_96.jpg',
+     'datasets/oxfordpet/images\\beagle_97.jpg',
+     'datasets/oxfordpet/images\\beagle_98.jpg',
+     'datasets/oxfordpet/images\\beagle_99.jpg',
+     'datasets/oxfordpet/images\\boxer_45.jpg',
+     'datasets/oxfordpet/images\\boxer_46.jpg',
+     'datasets/oxfordpet/images\\boxer_47.jpg',
+     'datasets/oxfordpet/images\\boxer_48.jpg',
+     'datasets/oxfordpet/images\\boxer_49.jpg',
+     'datasets/oxfordpet/images\\boxer_5.jpg',
+     'datasets/oxfordpet/images\\boxer_50.jpg',
+     'datasets/oxfordpet/images\\boxer_51.jpg',
+     'datasets/oxfordpet/images\\boxer_52.jpg',
+     'datasets/oxfordpet/images\\boxer_53.jpg',
+     'datasets/oxfordpet/images\\boxer_54.jpg',
+     'datasets/oxfordpet/images\\boxer_55.jpg',
+     'datasets/oxfordpet/images\\boxer_56.jpg',
+     'datasets/oxfordpet/images\\boxer_57.jpg',
+     'datasets/oxfordpet/images\\boxer_58.jpg',
+     'datasets/oxfordpet/images\\boxer_59.jpg',
+     'datasets/oxfordpet/images\\boxer_6.jpg',
+     'datasets/oxfordpet/images\\boxer_60.jpg',
+     'datasets/oxfordpet/images\\boxer_61.jpg',
+     'datasets/oxfordpet/images\\boxer_62.jpg',
+     'datasets/oxfordpet/images\\boxer_63.jpg',
+     'datasets/oxfordpet/images\\boxer_64.jpg',
+     'datasets/oxfordpet/images\\boxer_65.jpg',
+     'datasets/oxfordpet/images\\boxer_66.jpg',
+     'datasets/oxfordpet/images\\boxer_67.jpg',
+     'datasets/oxfordpet/images\\boxer_68.jpg',
+     'datasets/oxfordpet/images\\boxer_69.jpg',
+     'datasets/oxfordpet/images\\boxer_7.jpg',
+     'datasets/oxfordpet/images\\boxer_70.jpg',
+     'datasets/oxfordpet/images\\boxer_71.jpg',
+     'datasets/oxfordpet/images\\boxer_72.jpg',
+     'datasets/oxfordpet/images\\boxer_73.jpg',
+     'datasets/oxfordpet/images\\boxer_74.jpg',
+     'datasets/oxfordpet/images\\boxer_75.jpg',
+     'datasets/oxfordpet/images\\boxer_76.jpg',
+     'datasets/oxfordpet/images\\boxer_77.jpg',
+     'datasets/oxfordpet/images\\boxer_78.jpg',
+     'datasets/oxfordpet/images\\boxer_79.jpg',
+     'datasets/oxfordpet/images\\boxer_8.jpg',
+     'datasets/oxfordpet/images\\boxer_80.jpg',
+     'datasets/oxfordpet/images\\boxer_81.jpg',
+     'datasets/oxfordpet/images\\boxer_82.jpg',
+     'datasets/oxfordpet/images\\boxer_83.jpg',
+     'datasets/oxfordpet/images\\boxer_84.jpg',
+     'datasets/oxfordpet/images\\boxer_85.jpg',
+     'datasets/oxfordpet/images\\boxer_86.jpg',
+     'datasets/oxfordpet/images\\boxer_87.jpg',
+     'datasets/oxfordpet/images\\boxer_88.jpg',
+     'datasets/oxfordpet/images\\boxer_89.jpg',
+     'datasets/oxfordpet/images\\boxer_9.jpg',
+     ...]
+
+
+
+
+```python
+# Dataset 클래스 정의 (최소 요건\)
+## 1. torch.utils.data.Dataset을 상속
+## 2. __init__(): 필요한 속성들을 초기화
+## 3. __getitem__(): 1개의 데이터를 반환. ==> (input, output) 튜플로 반환.
+## 4. __len__(): 총 제공할 데이터개수
+## + 알파
+```
+
+
+```python
+# 임포트
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+```
+
+
+```python
+# datasets.MNIST(root=DATA_ROOT_PATH, train=True, download=True, transform=transforms)
+```
+
+
+```python
+class OxfordPetDataset(Dataset):
+
+    def __init__(self, path_list, transform=None):
+        # path_list: 파일경로들을 가진 list
+        self.path_list = path_list
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.path_list)
+
+    def __getitem__(self, index):
+        # index의 이미지와 그 label을 반환
+        # 이미지: PIL.Image, ndarray
+        ## X
+        path = self.path_list[index]
+        img = Image.open(path) # cv2.imread(path)
+        # transform 함수로 전처리
+        if self.transform != None:
+            img = self.transform(img)
+
+        ## y
+        file_name = os.path.splitext(os.path.basename(path))[0]
+        class_name = re.sub(r'_\d+', '', file_name)
+        # class_name을 index 변환
+        class_idx = class_to_index[class_name]
+        return img, class_idx
+```
+
+
+```python
+# __init__() 호출
+ofp_trainset = OxfordPetDataset(train_path_list) # trainset
+ofp_testset = OxfordPetDataset(test_path_list, transform=transforms.ToTensor())
+```
+
+
+```python
+# __len__() 호출
+len(ofp_trainset), len(ofp_testset)
+```
+
+
+
+
+    (5180, 2198)
+
+
+
+
+```python
+# __getitem__() 호출
+x, y = ofp_trainset[2004]
+```
+
+
+```python
+x
+```
+
+
+
+
+    
+![png](output_99_0.png)
+    
+
+
+
+
+```python
+y, index_to_class[y]
+```
+
+
+
+
+    (14, 'basset_hound')
+
+
+
+
+```python
+x1, y1 = ofp_testset[0]
+print(y1)
+```
+
+    0
+    
+
+
+```python
+# ToTensor 적용됨
+type(x1), x1.min(), x1.max(), x1.shape
+```
+
+
+
+
+    (torch.Tensor, tensor(0.), tensor(1.), torch.Size([3, 500, 335]))
+
+
+
+
+```python
+# Dataset 생성 + DataLoader
+transform = transforms.Compose([
+    transforms.Resize((224, 224), antialias=True), # 이미지 resize -h: 224, w: 224
+    transforms.ToTensor()
+])
+
+train_set = OxfordPetDataset(train_path_list, transform=transform)
+test_set = OxfordPetDataset(test_path_list, transform=transform)
+
+train_loader = DataLoader(train_set, batch_size=100, shuffle=True, drop_last=True)
+test_loader = DataLoader(test_set, batch_size=100)
+```
+
+
+```python
+x, y = next(iter(train_loader))
+x.shape
+```
+
+
+
+
+    torch.Size([100, 3, 224, 224])
+
+
+
+# Dataset을 이용해 CSV파일에 저장된 데이터셋 로딩
+
+
+```python
+import pandas as pd
+import numpy as np
+import torch 
+from torch.utils.data import Dataset, DataLoader, TensorDataset
+```
+
+
+```python
+iris = pd.read_csv('data/iris.data', header = None, names = ['꽃받침길이', '꽃받침너비', '꽃잎길이', '꽃잎너비', '정답']) # 정답-품종
+iris.shape
+```
+
+
+
+
+    (150, 5)
+
+
+
+
+```python
+iris.head()
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>꽃받침길이</th>
+      <th>꽃받침너비</th>
+      <th>꽃잎길이</th>
+      <th>꽃잎너비</th>
+      <th>정답</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>5.1</td>
+      <td>3.5</td>
+      <td>1.4</td>
+      <td>0.2</td>
+      <td>Iris-setosa</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>4.9</td>
+      <td>3.0</td>
+      <td>1.4</td>
+      <td>0.2</td>
+      <td>Iris-setosa</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>4.7</td>
+      <td>3.2</td>
+      <td>1.3</td>
+      <td>0.2</td>
+      <td>Iris-setosa</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4.6</td>
+      <td>3.1</td>
+      <td>1.5</td>
+      <td>0.2</td>
+      <td>Iris-setosa</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5.0</td>
+      <td>3.6</td>
+      <td>1.4</td>
+      <td>0.2</td>
+      <td>Iris-setosa</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+iris['정답'].unique()
+```
+
+
+
+
+    array(['Iris-setosa', 'Iris-versicolor', 'Iris-virginica'], dtype=object)
+
+
+
+
+```python
+index_to_class = iris['정답'].unique()
+# index_to_class
+class_to_index = { class_name:idx for idx, class_name in enumerate(index_to_class)}
+class_to_index
+```
+
+
+
+
+    {'Iris-setosa': 0, 'Iris-versicolor': 1, 'Iris-virginica': 2}
+
+
+
+
+```python
+# DataFrame -> X, y 분리
+X = iris.drop(columns='정답').values # DataFrame/Series.values ==> ndarray
+
+y = iris['정답'] 
+y = y.apply(lambda x: class_to_index[x]).to_frame().values # y를 index로 변환
+X.shape, y.shape
+```
+
+
+
+
+    ((150, 4), (150, 1))
+
+
+
+
+```python
+y
+```
+
+
+
+
+    array([[0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [0],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [1],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2],
+           [2]], dtype=int64)
+
+
+
+
+```python
+# Train/Test set 분리
+### : Python Deep Learning, Numpy배열
+!pip install scikit-learn 
+# (x, y) = (x1, x2), (y1, y2) 튜플
+from sklearn.model_selection import train_test_split
+```
+
+    Requirement already satisfied: scikit-learn in c:\users\world\anaconda3\envs\torch\lib\site-packages (1.3.1)
+    Requirement already satisfied: numpy<2.0,>=1.17.3 in c:\users\world\anaconda3\envs\torch\lib\site-packages (from scikit-learn) (1.26.0)
+    Requirement already satisfied: scipy>=1.5.0 in c:\users\world\anaconda3\envs\torch\lib\site-packages (from scikit-learn) (1.11.3)
+    Requirement already satisfied: joblib>=1.1.1 in c:\users\world\anaconda3\envs\torch\lib\site-packages (from scikit-learn) (1.3.2)
+    Requirement already satisfied: threadpoolctl>=2.0.0 in c:\users\world\anaconda3\envs\torch\lib\site-packages (from scikit-learn) (3.2.0)
+    
+
+
+```python
+X_train, X_test, y_train, y_test = train_test_split(X, y,  # 나눌 대상 input, output
+                                                    test_size = 0.2, # test 데이터셋의 비율 0.2 => train: 0.8, test: 0.2
+                                                    stratify = y # 분류: 원본 데이터셋의 클래스별 데이터 비율에 맞춰서 나눈다.
+                                                   )
+```
+
+
+```python
+X.shape, X_train.shape, X_test.shape
+```
+
+
+
+
+    ((150, 4), (120, 4), (30, 4))
+
+
+
+
+```python
+y.shape, y_train.shape, y_test.shape
+```
+
+
+
+
+    ((150, 1), (120, 1), (30, 1))
+
+
+
+
+```python
+np.unique(y, return_counts=True)[1]/150
+```
+
+
+
+
+    array([0.33333333, 0.33333333, 0.33333333])
+
+
+
+
+```python
+np.unique(y_train, return_counts=True)[1]/120
+```
+
+
+
+
+    array([0.33333333, 0.33333333, 0.33333333])
+
+
+
+
+```python
+# Dataset 생성
+## 원본 데이터가 메모리에 Tensor 객체(ndarray)로 있을때 => TensorDataset을 이용해서 생성.
+# TensorDataset(Input:torch.Tensor, Output: torch.Tensor)
+
+iris_trainset = TensorDataset(torch.tensor(X_train, dtype = torch.float32), # X/input
+                              torch.tensor(y_train, dtype = torch.float32)  # y/output
+                             )
+
+iris_testset = TensorDataset(torch.tensor(X_test, dtype = torch.float32), 
+                             torch.tensor(y_test, dtype = torch.float32)
+                            )
+```
+
+
+```python
+x, y = iris_trainset[0]
+print(x)
+print(y)
+```
+
+    tensor([5.9000, 3.2000, 4.8000, 1.8000])
+    tensor([1.])
+    
+
+## torchvision.datasets.ImageFolder 이용
+- 저장장치에 파일로 저장된 image들을 쉽게 로딩할 수 있도록 한다.
+- train/validation/test 데이터셋을 저장하는 디렉토리에 class 별로 디렉토리를 만들고 이미지를 저장한다.
+
+
+```python
+# google drive의 공유파일을 다운로드 하는 라이브러리.
+# !pip install gdown --upgrade
+```
+
+
+```python
+import os
+from zipfile import ZipFile
+import gdown
+
+def down_extract():
+    os.makedirs('data', exist_ok=True)
+    url = 'https://drive.google.com/uc?id=1YIxDL0XJhhAMdScdRUfDgccAqyCw5-ZV'
+    fname = 'data/cats_and_dogs_small.zip'
+
+    gdown.download(url, fname, quiet=False)
+    
+    #zipfile모듈: Zip 압축파일을 다루는 모듈(압축하기, 풀기)
+    from zipfile import ZipFile
+    # 압축풀기: ZipFile(압축파일경로).extractall(풀경로) # 디렉토리 없으면 생성해 준다.
+    with ZipFile(fname) as zipFile:
+        zipFile.extractall(os.path.join('datasets','cats_and_dogs_small'))
+        
+down_extract()        
+```
+
+    Downloading...
+    From (uriginal): https://drive.google.com/uc?id=1YIxDL0XJhhAMdScdRUfDgccAqyCw5-ZV
+    From (redirected): https://drive.google.com/uc?id=1YIxDL0XJhhAMdScdRUfDgccAqyCw5-ZV&confirm=t&uuid=20f26ffd-e62c-4aec-8455-f157cfd69257
+    To: C:\Users\world\Downloads\07_Deeplearning_pytorch\data\cats_and_dogs_small.zip
+    100%|█████████████████████████████████████████████████████████████████████████████| 90.8M/90.8M [00:15<00:00, 5.70MB/s]
+    
+
+
+```python
+# 임포트
+from torchvision.datasets import ImageFolder
+
+import torch 
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+import matplotlib.pyplot as plt
+```
+
+
+```python
+# ImageFolder를 이용해서 Dataset을 생성.
+cd_trainset = ImageFolder(root='datasets/cats_and_dogs_small/train', # 클래스별 폴더가 있는 디렉토리 설정
+                          )
+cd_testset = ImageFolder(root='datasets/cats_and_dogs_small/test', transform = transforms.ToTensor())
+cd_validset = ImageFolder(root='datasets/cats_and_dogs_small/validation')
+```
+
+
+```python
+isinstance(cd_trainset, Dataset)
+```
+
+
+
+
+    True
+
+
+
+
+```python
+# 데이터수
+len(cd_trainset), len(cd_testset)
+```
+
+
+
+
+    (2000, 1000)
+
+
+
+
+```python
+# 데이터셋 정보
+cd_trainset
+```
+
+
+
+
+    Dataset ImageFolder
+        Number of datapoints: 2000
+        Root location: datasets/cats_and_dogs_small/train
+
+
+
+
+```python
+# index to class
+cd_trainset.classes
+```
+
+
+
+
+    ['cats', 'dogs']
+
+
+
+
+```python
+# class to index
+cd_trainset.class_to_idx
+```
+
+
+
+
+    {'cats': 0, 'dogs': 1}
+
+
+
+
+```python
+x, y = cd_trainset[0]
+print(y, cd_trainset.classes[y])
+```
+
+    0 cats
+    
+
+
+```python
+print(type(x))
+```
+
+    <class 'PIL.Image.Image'>
+    
+
+
+```python
+x
+```
+
+
+
+
+    
+![png](output_133_0.png)
+    
+
+
+
+
+```python
+x2, y2 = cd_testset[0]
+print(type(x2))
+```
+
+    <class 'torch.Tensor'>
+    
+
+
+```python
+print(x2.min(), x2.max(), x2.shape)
+```
+
+    tensor(0.) tensor(1.) torch.Size([3, 500, 490])
+    
+
+
+```python
+plt.imshow(x2.permute(1, 2, 0)) # [c, h, w] => [h, w, c]
+```
+
+
+
+
+    <matplotlib.image.AxesImage at 0x271b8f4e710>
+
+
+
+
+    
+![png](output_136_1.png)
+    
+
+
+# 모델 성능 평가를 위한 데이터셋 분리
+- **Train 데이터셋 (훈련/학습 데이터셋)**
+    - 모델을 학습시킬 때 사용할 데이터셋.
+- **Validation 데이터셋 (검증 데이터셋)**
+    - 모델의 성능 중간 검증을 위한 데이터셋
+- **Test 데이터셋 (평가 데이터셋)**
+    - 모델의 성능을 최종적으로 측정하기 위한 데이터셋
+    - **Test 데이터셋은 마지막에 모델의 성능을 측정하는 용도로 한번만 사용한다.**
+ 
+## Validataion 과 Test datas 분리이유
+- 모델을 훈련하고 평가했을때 원하는 성능이 나오지 않으면 모델을 수정한 뒤에 다시 훈련시키고 검증 하게 된다. 원하는 성능이 나올때 까지 **설정변경->훈련->검증**을 반복하게 된다. 
+- 위 사이클을 반복하게 되면검증가결과를 바탕으로모델 설정을 변경하게 되므로 **검증할 때 사용한 데이터셋에 모을이 맞춰서 훈련하는 , 즉 검증데이테셋으로 모델을 학습한 것과 같다..*) 그래서 Train dataset과 Test dataset 두 개의 데이터셋만 사용하게 되면 모델의 성능을 제대로 평가할 수 없게 된다. 그래서 데이터셋을 train 세트, validation 세터, test 세트로 나눠 train set 와 validation set으로 모델을 최적화 한 뒤 마지막 학습하는 과정에서 **한번도 사용하지 않았던  test set으로 최종 평가를 한다**
+종 평가를 한다.
+
+> - **(Parameter)머신러닝 모델 파라미터**
+>    - 성능에 영향을 주는 값으로 최적화 하는 대상내는 값을 찾아야 한다.
+>       - **하이퍼파라미터(Hyper Parameter)**
+>            - 사람이 직접 설정해야하는 파라미터 값
+>       - **파라미터(Parameter)**
+>            - 데이터 학습을 통해 찾는 파라미터 값
+
+## 파이토치 데이터셋 분리
+
+### torch.utils.data.Subset을 이용
+
+- Dataset의 일부를 가지는 부분집합 데이터셋을 생성
+- 주로 사용하는 곳
+    1. 데이터 셋을 분리
+    2. 전체 데이터 셋에서 일부 데이터를 추출 할 때
+    3. 데이터셋에서 특정 데이터만 골라서 추출할 때 (ex: 특정 class만 추출하는 경우)
+
+
+```python
+# TrainDataset과 TestDataset이 있는 경우 => ValidationDataset을 분리하려고 하는 경우
+```
+
+
+```python
+import torch
+from torchvision import datasets
+from torchvision import transforms
+from torch.utils.data import Subset
+```
+
+
+```python
+data = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+label = torch.tensor([[1], [2], [2], [0], [1]])
+dataset = TensorDataset(data, label)
+len(dataset)
+```
+
+
+```python
+d1 = Subset(dataset, [0, 1]) # data의 index 0, 1을 d1으로
+# dataset의 input/output중 0, 1 index의 값들로 부분 집합 Dataset 생성
+
+d2 = Subset(dataset, [2, 3, 4]) # data의 index 2, 3, 4을 d2로 나누기.
+
+```
+
+
+```python
+print(type(d1), isinstance(d1, Dataset))
+print(len(d1), len(d2))
+```
+
+    <class 'torch.utils.data.dataset.Subset'> True
+    2 3
+    
+
+
+```python
+d1[0]
+```
+
+
+
+
+    (tensor([1, 2]), tensor([1]))
+
+
+
+
+```python
+d2[0]
+```
+
+
+
+
+    (tensor([5, 6]), tensor([2]))
+
+
+
+
+```python
+DATA_ROOT_PATH = 'datasets'
+
+mnist_trainset = datasets.MNIST(root=DATA_ROOT_PATH, train=True, download=True, transform=transforms.ToTensor())
+```
+
+
+```python
+len(mnist_trainset)
+```
+
+
+
+
+    60000
+
+
+
+
+```python
+# mnist_trainset -> trainset, validation set
+t_index = list(range(50000))
+v_index = list(range(50000, 60000))
+t_set = Subset(mnist_trainset, t_index)
+v_set = Subset(mnist_trainset, v_index)
+len(t_set), len(v_set)
+```
+
+
+
+
+    (50000, 10000)
+
+
+
+### random_split() 함수 이용
+
+- Dataset객체와 나눌 데이터셋들의 원소개수를 리스트로 묶어서 전달하면  Shuffle후 나눈뒤 그 결과를 Subset객체들을 리스트에 담아 반환한다.
+
+
+```python
+import torch
+from torchvision import datasets
+from torchvision import transforms
+from torch.utils.data import Subset
+from torch.utils.data import random_split # 함수
+```
+
+
+```python
+data = torch.tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]])
+label = torch.tensor([[1], [2], [2], [0], [1]])
+dataset = TensorDataset(data, label)
+```
+
+
+```python
+len(dataset)
+```
+
+
+
+
+    5
+
+
+
+
+```python
+# dataset(5개) -> 2 (3개 2개)
+d = random_split(dataset, # 나눌대상 Dataset
+                 [2, 3] # 개수를 지정.
+            )
+d
+```
+
+
+
+
+    [<torch.utils.data.dataset.Subset at 0x271bb3e0fd0>,
+     <torch.utils.data.dataset.Subset at 0x271bb3e0820>]
+
+
+
+
+```python
+len(d[0]), len(d[1])
+```
+
+
+
+
+    (2, 3)
+
+
+
+
+```python
+for x, y in dataset:
+    print(x)
+```
+
+    tensor([1, 2])
+    tensor([3, 4])
+    tensor([5, 6])
+    tensor([7, 8])
+    tensor([ 9, 10])
+    
+
+
+```python
+for x, y in d[0]:
+    print(x)
+```
+
+    tensor([1, 2])
+    tensor([5, 6])
+    
+
+
+```python
+random_split(dataset, [1, 2, 2]) # 3개 Subset으로 나눔
+```
+
+
+
+
+    [<torch.utils.data.dataset.Subset at 0x271b82d0c40>,
+     <torch.utils.data.dataset.Subset at 0x271b82d0b20>,
+     <torch.utils.data.dataset.Subset at 0x271b82d2830>]
+
+
+
+
+```python
+# mnist_trainset -> 두개 dataset으로 나눌경우 => 개수
+mnist_trainset, mnist_valset = random_split(mnist_trainset, [50000, 10000])
+```
+
+
+```python
+len(mnist_trainset), len(mnist_valset)
+```
+
+
+
+
+    (50000, 10000)
+
+
