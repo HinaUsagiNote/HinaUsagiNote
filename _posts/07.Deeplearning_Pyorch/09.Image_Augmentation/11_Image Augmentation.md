@@ -1,6 +1,6 @@
 ---
 layout: single
-title: 'Boston Housing Dataset 모델'
+title: 'Image Augmentation'
 typora-root-url: ../
 categories: Deeplearning_Pytorch.09.Image Augmentation
 tag: Pytorch
@@ -14,15 +14,10 @@ toc: true
   - 딥러닝은 많은 양의 데이터셋을 이용해 feature engineering 과정 없이 원하는 문제를 해결할 수 있다. => **Point: 많은 데이터 양**
 - Data 양이 많지 않아 딥러닝 모델의 학습에 어려움이 있을 때 사용 가능한 방법
     - **Image augmentation 활용**
-        - Image에 다양한 효과를 주어 데이터양을 늘린다.
-            - Train dataset은 전체 대상 이미지들을 샘플링한 것이기 때문에 모든 형태를 다 가지고 있지 않다. Data augmentation은 train set의 이미지에 다양한 효과를 주어 실제 데이터셋과의 간격을 줄인다.
-            - 영상데이터의 경우 각 영상 데이터의 색변경, 이미지잘라내기, 회전시키기, 명암변경 등을 적용하여 이미지들을 추가로 만들어 data의 수를 늘린다.
+        - Image에 다양한 효과를 주어 데이터양을 늘린다..
         - **모델의 Overfitting을 개선시킨다.**
-        - pytorch image augmentation을 위한 클래스들
-            - https://pytorch.org/vision/stable/transforms.html
     - **Pre-trained network**의 활용한 **Transfer learning (전이학습)**
         - 매우 큰 데이터셋으로 미리 Training한 모델을 이용해 모델을 정의한다.
-        - 성능이 좋은모델을 다량의 데이터로 학습시킨 모델을 사용하므로 적은 데이터에도 좋은 성능을 낼 수있다.
 
 # Image Augmentation 예제
 
@@ -170,11 +165,11 @@ image_show(img_path, transform)
 
     C:\Users\world\anaconda3\envs\torch\lib\site-packages\torchvision\transforms\functional.py:1603: UserWarning: The default value of the antialias parameter of all the resizing transforms (Resize(), RandomResizedCrop(), etc.) will change from None to True in v0.17, in order to be consistent across the PIL and Tensor backends. To suppress this warning, directly pass antialias=True (recommended, future default), antialias=None (current default, which means False for Tensors and True for PIL), or antialias=False (only works on Tensors - PIL will still use antialiasing). This also applies if you are using the inference transforms from the models weights: update the call to weights.transforms(antialias=True).
       warnings.warn(
-    
 
 
-    
-![png](output_5_1.png)
+
+
+![output_5_1](/../../images/11_Image Augmentation/output_5_1.png)
     
 
 
@@ -217,10 +212,10 @@ image_show('test_img/cat.jpg', transform2)
     Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
     Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
     Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
-    
 
 
-    
-![png](output_6_1.png)
+
+
+![output_6_1](/../../images/11_Image Augmentation/output_6_1.png)
     
 

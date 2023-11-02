@@ -11,7 +11,6 @@ toc: true
 
 - 다른 목적을 위해 미리 학습된 모델.
 - Pretrained model을 현재 해결하려는 문제에 이용한다.
-- 대부분 내가 만들려는 네트워크 모델에 pretrained model을 포함시켜 사용한다.
     - 이런 방식을 Transfer Learning (전이 학습)이라고 한다.
     - 보통 Feature Extractor block을 재사용한다.
 
@@ -21,10 +20,7 @@ toc: true
 - torch hub 를 이용해 모델과 학습된 parameter를 사용할 수 있다.
     - https://pytorch.org/hub/
 - 이외에도 많은 모델과 학습된 paramter가 인터넷상에 공개되 있다.    
-    - 딥러닝 모델기반 application을 개발 할 때는 대부분 Transfer Learning을 한다.  
-    - 다양한 분야에서 연구된 많은 딥러닝 모델들이 구현되어 공개 되어 있으며 학습된 Parameter들도 제공되고 있다.  
     - [paperswithcode](https://paperswithcode.com/)에서 State Of The Art(SOTA) 논문들과 그 구현된 모델을 확인할 수 있다.
-    
 >  **State Of The Art(SOTA)**: 특정 시점에 특정 분야에서 가장 성능이 좋은 모델을 말한다.
 
 ## VGGNet Pretrained 모델을 이용해 이미지 분류
@@ -65,7 +61,7 @@ r
 ```
 
     <class 'int'>
-    
+
 
 
 
@@ -81,7 +77,7 @@ print(r, type(r))
 ```
 
     [1, 2, 3] <class 'list'>
-    
+
 
 
 ```python
@@ -90,7 +86,7 @@ print(type(r), r)
 ```
 
     <class 'dict'> {0: '사람', 1: '물통'}
-    
+
 
 
 ```python
@@ -109,7 +105,7 @@ print(type(index_to_class))
 ```
 
     <class 'dict'>
-    
+
 
 
 ```python
@@ -347,9 +343,9 @@ test_img
 
 
 
-    
+​    
 ![png](output_20_0.png)
-    
+​    
 
 
 
@@ -382,7 +378,7 @@ print(type(input_data), input_data.shape, input_data.min(), input_data.max())
 ```
 
     <class 'torch.Tensor'> torch.Size([3, 224, 224]) tensor(0.) tensor(1.)
-    
+
 
 
 ```python
@@ -446,7 +442,7 @@ print("확률:", prob1.item())
 
     283 Persian cat
     확률: 0.3343072235584259
-    
+
 
 # Transfer learning (전이학습)
 - 사전에 학습된 신경망의 구조와 파라미터를 재사용해서 새로운 모델(우리가 만드는 모델)의 시작점으로 삼고 해결하려는 문제를 위해 다시 학습시킨다.
@@ -474,7 +470,7 @@ print("확률:", prob1.item())
     - Feature Extractor는 추론을 위한 Feature 추출을 하는 역할만 하고 그 parameter(weight)가 학습되지 않도록 한다.
 - 모델/레이어의 parameter trainable 여부 속성 변경
     - model/layer 의 `parameters()` 메소드를 이용해 weight와 bias를 조회한 뒤 `requires_grad` 속성을 `False`로 변경한다.
-        
+      
 #### Backbone, Base network
 전체 네트워크에서 Feature Extraction의 역할을 담당하는 부분을 backbone/base network라고 한다.
 
@@ -491,13 +487,15 @@ print("확률:", prob1.item())
 - Pretrained 모델의 weight는 Feature extraction 의 초기 weight 역할을 한다.
 - **Train dataset의 양이 많고** Pretrained 모델이 학습했던 dataset과 Custom dataset의 class간의 유사성이 **낮은 경우** 적용.
 - 학습에 시간이 많이 걸린다.
+  
     
-    
+
 **<font size='5'>2. Pretrained 모델 Bottom layer들(Input과 가까운 Layer들)은 고정시키고 Top layer의 일부를 재학습시킨다.(2번)</font>**     
 - **Train dataset의 양이 많고** Pretrained 모델이 학습했던 dataset과 Custom dataset의 class간의 유사성이 **높은 경우** 적용.
 - **Train dataset의 양이 적고** Pretained 모델이 학습했던 dataset과 custom dataset의 class간의 유사성이 **낮은 경우** 적용
+  
     
-    
+
 **<font size='5'>3. Pretrained 모델 전체를 고정시키고 classifier layer들만 학습시킨다.(3번)</font>**      
 - **Train dataset의 양이 적고** Pretrained 모델이 학습했던 dataset과 Custom dataset의 class간의 유사성이 **높은 경우** 적용.
   
@@ -536,7 +534,7 @@ def plot_fit_result(train_loss_list, train_acc_list, val_loss_list, val_acc_list
 ```
 
     Writing module/utils.py
-    
+
 
 
 ```python
@@ -547,7 +545,7 @@ def plot_fit_result(train_loss_list, train_acc_list, val_loss_list, val_acc_list
       Downloading torchinfo-1.8.0-py3-none-any.whl (23 kB)
     Installing collected packages: torchinfo
     Successfully installed torchinfo-1.8.0
-    
+
 
 
 ```python
@@ -592,7 +590,7 @@ device
         Uninstalling gdown-4.6.6:
           Successfully uninstalled gdown-4.6.6
     Successfully installed gdown-4.7.1
-    
+
 
 
 
@@ -620,7 +618,7 @@ gdown.download(url, path, quiet=False)
     From (redirected): https://drive.google.com/uc?id=1YIxDL0XJhhAMdScdRUfDgccAqyCw5-ZV&confirm=t&uuid=96112698-c170-4650-8392-668f032079de
     To: /content/data/cats_and_dogs_small.zip
     100%|██████████| 90.8M/90.8M [00:01<00:00, 60.0MB/s]
-    
+
 
 
 
@@ -794,7 +792,7 @@ plt.imshow(batch_one[0][30].permute(1,2,0))
 ```
 
     Clipping input data to the valid range for imshow with RGB data ([0..1] for floats or [0..255] for integers).
-    
+
 
 
 
@@ -804,9 +802,9 @@ plt.imshow(batch_one[0][30].permute(1,2,0))
 
 
 
-    
+​    
 ![png](output_59_2.png)
-    
+​    
 
 
 
@@ -827,7 +825,7 @@ model = models.vgg19(weights=models.VGG19_Weights.DEFAULT)
 
     Downloading: "https://download.pytorch.org/models/vgg19-dcbb9e9d.pth" to /root/.cache/torch/hub/checkpoints/vgg19-dcbb9e9d.pth
     100%|██████████| 548M/548M [00:05<00:00, 96.4MB/s]
-    
+
 
 
 ```python
@@ -875,7 +873,7 @@ for param in model.parameters():
     torch.Size([4096]) True
     torch.Size([1000, 4096]) True
     torch.Size([1000]) True
-    
+
 
 
 ```python
@@ -929,7 +927,7 @@ for param in model.parameters():
     False
     False
     False
-    
+
 
 
 ```python
@@ -1060,7 +1058,7 @@ print(model) # instance변수(attribute)들을 출력
         (6): Linear(in_features=4096, out_features=1000, bias=True)
       )
     )
-    
+
 
 
 ```python
@@ -1212,7 +1210,7 @@ result = fit(train_loader, valid_loader, model, loss_fn, optimizer, N_EPOCH,
     ====================================================================================================
     Early stopping: Epoch - 11
     569.0854172706604 초
-    
+
 
 
 ```python
@@ -1234,7 +1232,7 @@ print(loss, acc)
 ```
 
     0.05025501688942313 0.983
-    
+
 
 
 ```python
@@ -1319,7 +1317,7 @@ device
         Uninstalling gdown-4.6.6:
           Successfully uninstalled gdown-4.6.6
     Successfully installed gdown-4.7.1
-    
+
 
 
 
@@ -1346,7 +1344,7 @@ gdown.download(url, path, quiet=False)
     From (redirected): https://drive.google.com/uc?id=1YIxDL0XJhhAMdScdRUfDgccAqyCw5-ZV&confirm=t&uuid=c64fd62b-f653-4d9b-b2c1-e0186e95fcc7
     To: /content/data/cats_and_dogs_small.zip
     100%|██████████| 90.8M/90.8M [00:00<00:00, 252MB/s]
-    
+
 
 
 
@@ -1546,7 +1544,7 @@ for i, p in enumerate(model2.parameters()):
     35 True
     36 True
     37 True
-    
+
 
 
 ```python
@@ -1600,7 +1598,7 @@ result = fit(train_loader, valid_loader, model2, loss_fn, optimizer, 20,
     ====================================================================================================
     Early stopping: Epoch - 10
     528.5934660434723 초
-    
+
 
 
 ```python
@@ -1666,4 +1664,4 @@ result = fit(train_loader, valid_loader, model2, loss_fn, optimizer, 20,
     ====================================================================================================
     Early stopping: Epoch - 19
     971.4693756103516 초
-    
+
