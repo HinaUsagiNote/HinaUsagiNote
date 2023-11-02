@@ -1,3 +1,12 @@
+---
+layout: single
+title: 'Boston Housing Dataset 모델'
+typora-root-url: ../
+categories: Deeplearning_Pytorch.10.Transfer Learning과 Fine Tuning
+tag: Pytorch
+toc: true
+---
+
 # Pretrained Model
 
 - 다른 목적을 위해 미리 학습된 모델.
