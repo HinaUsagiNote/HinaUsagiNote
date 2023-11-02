@@ -1,3 +1,10 @@
+layout: single
+title: 'Boston Housing Dataset 모델'
+typora-root-url: ../
+categories: Deeplearning_Pytorch.08.Convolutional Neural Network 모델
+tag: Pytorch
+toc: true
+
 # Convolutional Neural Network 모델 정의
 
 
