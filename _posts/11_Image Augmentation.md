@@ -1,3 +1,12 @@
+---
+layout: single
+title: 'Boston Housing Dataset 모델'
+typora-root-url: ../
+categories: Deeplearning_Pytorch.09.Image Augmentation
+tag: Pytorch
+toc: true
+---
+
 # CNN   small datasets 학습
 
 
